@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider , db } from '../firebase/config';
+import { createUserWithEmailAndPassword, signInWithPopup, updateProfile } from 'firebase/auth'; // ✅ imported updateProfile directly
+import { auth, googleProvider, db } from '../firebase/config';
 import { doc, setDoc } from 'firebase/firestore';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +14,7 @@ const RegisterForm = () => {
     const [msg, setMsg] = useState('');
     const navigate = useNavigate();
 
-    // Register
+    // 📌 Email/Password Registration
     const handleRegister = async (e) => {
         e.preventDefault();
         if (password !== confirmPassword) {
@@ -22,21 +22,27 @@ const RegisterForm = () => {
             return;
         }
         try {
+            // 1️⃣ Create user in Firebase Authentication
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-            // Set displayName in Firebase Auth profile
-            await import('firebase/auth').then(({ updateProfile }) => updateProfile(user, { displayName: username }));
+
+            // 2️⃣ Update displayName
+            await updateProfile(user, { displayName: username }); // ✅ Direct import now
+
+            // 3️⃣ Get token & UID
             const token = await user.getIdToken();
             const uid = user.uid;
 
-            // Store data in Firestore (add email for consistency)
-            await setDoc(doc(db, "users", uid), {
+            // 4️⃣ Store user in Firestore
+            await setDoc(doc(db, "users", uid), { // ✅ email added here
                 userid: uid,
                 username: username,
                 phonenumber: phone,
-                email: email
+                email: email,
+                createdAt: new Date() // ✅ track account creation time
             });
 
+            // 5️⃣ Send token to backend (optional)
             await axios.post('http://localhost:5000/api/auth/verify', {}, {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -47,18 +53,20 @@ const RegisterForm = () => {
         }
     };
 
-    // Google Signup
+    // 📌 Google Signup
     const handleGoogleSignup = async () => {
         try {
             const result = await signInWithPopup(auth, googleProvider);
             const token = await result.user.getIdToken();
             const uid = result.user.uid;
 
-
-             await setDoc(doc(db, "users", uid), {
+            // ✅ Store Google user in Firestore with email
+            await setDoc(doc(db, "users", uid), {
                 userid: uid,
                 username: result.user.displayName || "",
-                phonenumber: "" // no phone from Google directly
+                phonenumber: "",
+                email: result.user.email || "", // ✅ added email
+                createdAt: new Date()
             });
 
             await axios.post('http://localhost:5000/api/auth/verify', {}, {
@@ -77,80 +85,40 @@ const RegisterForm = () => {
                 <h2 style={styles.title}>Create Account</h2>
                 <p style={styles.subtitle}>
                     Already have an account?{' '}
-                    <a href="/login" style={styles.link}>
-                        Log in
-                    </a>
+                    <a href="/login" style={styles.link}>Log in</a>
                 </p>
 
                 <form onSubmit={handleRegister}>
-                    <input
-                        type="text"
-                        placeholder="Username"
-                        style={styles.input}
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                    />
-                    <input
-                        type="tel"
-                        placeholder="Phone Number"
-                        style={styles.input}
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        required
-                    />
-                    <input
-                        type="email"
-                        placeholder="Email"
-                        style={styles.input}
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-                    <input
-                        type="password"
-                        placeholder="Password"
-                        style={styles.input}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
-                    <input
-                        type="password"
-                        placeholder="Confirm Password"
-                        style={styles.input}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                    />
+                    <input type="text" placeholder="Username" style={styles.input}
+                        value={username} onChange={(e) => setUsername(e.target.value)} required />
+                    <input type="tel" placeholder="Phone Number" style={styles.input}
+                        value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                    <input type="email" placeholder="Email" style={styles.input}
+                        value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <input type="password" placeholder="Password" style={styles.input}
+                        value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <input type="password" placeholder="Confirm Password" style={styles.input}
+                        value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
 
-                    <button type="submit" style={styles.signUpBtn}>
-                        Sign Up
-                    </button>
+                    <button type="submit" style={styles.signUpBtn}>Sign Up</button>
                 </form>
 
-                <div style={styles.divider}>
-                </div>
+                <div style={styles.divider}></div>
 
                 <button style={styles.googleBtn} onClick={handleGoogleSignup}>
-                    <img
-                        src={require('../assets/google.png')}
-                        alt="Google"
-                        style={styles.googleIcon}
-                    />
+                    <img src={require('../assets/google.png')} alt="Google" style={styles.googleIcon} />
                     Continue with Google
                 </button>
 
                 {msg && <p style={styles.message}>{msg}</p>}
 
-                <p style={styles.footerText}>
-                    <a href="/" style={styles.link}>Home</a>
-                </p>
+                <p style={styles.footerText}><a href="/" style={styles.link}>Home</a></p>
             </div>
         </div>
     );
 };
 
+// ✅ Styles unchanged from your version
 const styles = {
     overlay: {
         minHeight: '90vh',
@@ -240,7 +208,6 @@ const styles = {
         fontSize: '16px',
         color: '#666',
     },
-    
 };
 
 export default RegisterForm;
