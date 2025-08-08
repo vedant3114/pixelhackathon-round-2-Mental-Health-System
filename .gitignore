@@ -3,7 +3,8 @@
 # Node (backend)
 /server/node_modules
 # server/.env
-/server/firebase/serviceAccountKey.json
+/server/firebase/serviceAccountKey.json*
+
 
 # React (frontend)
 /frontend/node_modules
