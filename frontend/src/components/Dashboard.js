@@ -20,14 +20,32 @@ import {
   IconButton,
   Avatar,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Stack,
+  Rating,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 
-// Firebase imports
-import { auth } from '../firebase/config';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth, db } from '../firebase/config';
+import { 
+  onAuthStateChanged, 
+  signOut 
+} from 'firebase/auth';
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  onSnapshot, 
+  addDoc 
+} from 'firebase/firestore';
 
 // Styled components
 const Root = styled('div')(({ theme }) => ({
@@ -65,17 +83,48 @@ const ChartContainer = styled(Box)(({ theme }) => ({
   },
 }));
 
+const MoodEntryButton = styled(Button)(({ theme }) => ({
+  borderRadius: '12px',
+  textTransform: 'none',
+  fontWeight: '600',
+  boxShadow: 'none',
+  '&:hover': {
+    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+  },
+}));
+
+const MoodCheckButton = styled(Button)(({ theme }) => ({
+  borderRadius: '50%',
+  minWidth: 56,
+  minHeight: 56,
+  width: 56,
+  height: 56,
+  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+  '&:hover': {
+    boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+  },
+}));
+
 const MoodChart = () => {
-  // Mock data for mood chart
-  const data = [
-    { day: 'Mon', mood: 3 },
-    { day: 'Tue', mood: 4 },
-    { day: 'Wed', mood: 2 },
-    { day: 'Thu', mood: 5 },
-    { day: 'Fri', mood: 3 },
-    { day: 'Sat', mood: 4 },
-    { day: 'Sun', mood: 4 },
-  ];
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    // Mock data for demonstration
+    const mockData = [
+      { day: 'Mon', mood: 3 },
+      { day: 'Tue', mood: 4 },
+      { day: 'Wed', mood: 2 },
+      { day: 'Thu', mood: 5 },
+      { day: 'Fri', mood: 3 },
+      { day: 'Sat', mood: 4 },
+      { day: 'Sun', mood: 4 },
+    ];
+    setData(mockData);
+  }, []);
+
+  if (data.length === 0) {
+    return <div>Loading mood trends...</div>;
+  }
 
   const maxMood = 5;
 
@@ -129,6 +178,118 @@ const MoodChart = () => {
   );
 };
 
+const MoodEntryDialog = ({ open, onClose, onSubmit }) => {
+  const [mood, setMood] = useState(3);
+  const [notes, setNotes] = useState('');
+  const [journalEntry, setJournalEntry] = useState('');
+
+  const handleSubmit = () => {
+    // In a real app, this would contain user's ID from Firebase auth
+    const moodEntry = {
+      mood,
+      notes,
+      journalEntry,
+      timestamp: new Date().toISOString(),
+    };
+    
+    onSubmit(moodEntry);
+    onClose();
+    // Reset form
+    setMood(3);
+    setNotes('');
+    setJournalEntry('');
+  };
+
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="md" 
+      fullWidth 
+      PaperProps={{ sx: { borderRadius: '16px', p: 0 } }}
+    >
+      <DialogTitle sx={{ p: 3, borderBottom: '1px solid #e7f3ed', color: '#0d1b14', fontWeight: 'bold' }}>
+        Log Your Mood
+      </DialogTitle>
+      <DialogContent sx={{ p: 3 }}>
+        <Stack spacing={3}>
+          <Box>
+            <Typography variant="subtitle1" sx={{ mb: 2, color: '#4c9a73' }}>
+              How are you feeling today?
+            </Typography>
+            <Box display="flex" justifyContent="center" alignItems="center">
+              <Rating
+                name="mood-rating"
+                value={mood}
+                onChange={(_, value) => setMood(value)}
+                max={5}
+                size="large"
+                sx={{ alignItems: 'center' }}
+              />
+            </Box>
+            <Box display="flex" justifyContent="center" mt={1}>
+              <Chip 
+                label={`${mood} out of 5`} 
+                color="success" 
+                size="small" 
+                sx={{ backgroundColor: '#e7f3ed', color: '#0d1b14' }}
+              />
+            </Box>
+          </Box>
+          
+          <Box>
+            <Typography variant="subtitle1" sx={{ mb: 2, color: '#4c9a73' }}>
+              Optional Notes
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="What's on your mind?"
+              variant="outlined"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+            />
+          </Box>
+          
+          <Box>
+            <Typography variant="subtitle1" sx={{ mb: 2, color: '#4c9a73' }}>
+              Journal Entry
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              value={journalEntry}
+              onChange={(e) => setJournalEntry(e.target.value)}
+              placeholder="Write about your day..."
+              variant="outlined"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+            />
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ p: 3, borderTop: '1px solid #e7f3ed' }}>
+        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: '8px' }}>
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleSubmit} 
+          variant="contained" 
+          sx={{ 
+            borderRadius: '8px', 
+            bgcolor: '#4c9a73',
+            '&:hover': { bgcolor: '#3a9b7a' }
+          }}
+        >
+          Save Entry
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 const MoodDashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -137,17 +298,48 @@ const MoodDashboard = () => {
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [moodData, setMoodData] = useState(null);
+  const [moodEntries, setMoodEntries] = useState([]);
+  const [averageMood, setAverageMood] = useState(3.5);
+  const [moodDialogOpen, setMoodDialogOpen] = useState(false);
+  const [currentMood, setCurrentMood] = useState(3); // Fixed: Added state for currentMood
   const navigate = useNavigate();
 
   // Firebase auth state observer
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
+  }, []);
+
+  // Fetch mood entries from Firestore
+  useEffect(() => {
+    if (!user) return;
+
+    const moodEntriesRef = collection(db, 'users', user.uid, 'mood_entries');
+    const q = query(moodEntriesRef, orderBy('timestamp', 'desc'), limit(30));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const entries = [];
+      let totalMood = 0;
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        entries.push({ id: doc.id, ...data });
+        totalMood += data.mood || 0;
+      });
+      
+      setMoodEntries(entries);
+      
+      if (entries.length > 0) {
+        const avg = totalMood / entries.length;
+        setAverageMood(parseFloat(avg.toFixed(1)));
+      }
+    });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   // Mobile menu handlers
   const handleMobileMenuOpen = (event) => {
@@ -167,7 +359,12 @@ const MoodDashboard = () => {
     setUserMenuAnchorEl(null);
   };
 
-  // Logout handler
+  // Navigation handler
+  const handleNavigate = (path) => {
+    navigate(path);
+  };
+
+  // Logout handler - Fixed: Added signOut function
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -175,6 +372,19 @@ const MoodDashboard = () => {
       navigate('/login'); // Redirect to login page after logout
     } catch (error) {
       console.error('Error signing out:', error);
+    }
+  };
+
+  // Mood entry handler
+  const handleMoodEntrySubmit = async (moodEntry) => {
+    if (!user) return;
+    
+    try {
+      await addDoc(collection(db, 'users', user.uid, 'mood_entries'), moodEntry);
+      // The onSnapshot listener will automatically update the moodEntries and averageMood
+    } catch (error) {
+      console.error('Error adding mood entry:', error);
+      // Optionally show an error message to the user
     }
   };
 
@@ -271,43 +481,109 @@ const MoodDashboard = () => {
           
           <Box sx={{ flexGrow: 1 }} />
           
-          {/* Desktop Navigation - Hidden on mobile */}
-          <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1, mr: 4 }}>
-            <Button color="inherit">Home</Button>
+          {/* Desktop Navigation - Visible on desktop */}
+          <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1, flexDirection: 'row', alignItems: 'center' }}>
+            <Button 
+              color="inherit" 
+              onClick={() => handleNavigate('/')} 
+              startIcon={
+                <SvgIcon fontSize="small">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" fill="currentColor" viewBox="0 0 256 256">
+                    <path d="M168.49,71.51a12,12,0,0,0,-17,0L104,119,56.49,71.51a12,12,0,0,0,-17,0,12,12,0,0,0,0,17l65,65a12,12,0,0,0,17,0l65,-65a12,12,0,0,0,0,-17"></path>
+                  </svg>
+                </SvgIcon>
+              }
+            >
+              Home
+            </Button>
+            
             <Button color="inherit">Journal</Button>
             <Button color="inherit">Challenges</Button>
             <Button color="inherit">Resources</Button>
           </Box>
           
-          {/* Mobile menu button - Hidden on desktop */}
-          <IconButton 
-            size="large" 
-            edge="end" 
-            color="inherit" 
-            aria-label="menu"
-            onClick={handleMobileMenuOpen}
-            sx={{ display: { xs: 'flex', sm: 'none' } }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
-              <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
-            </svg>
-          </IconButton>
-          
-          <Tooltip title="Notifications">
-            <Button
-              variant="outlined"
+          {/* Mood Entry Button */}
+          <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
+            <MoodEntryButton 
               startIcon={
                 <SvgIcon fontSize="small">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
-                    <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
+                    <path d="M2 17L12 22L22 17"></path>
+                    <path d="M2 12L12 17L22 12"></path>
                   </svg>
                 </SvgIcon>
               }
-              sx={{ borderRadius: 2, display: { xs: 'none', sm: 'flex' } }}
+              variant="contained"
+              sx={{ 
+                bgcolor: '#4c9a73',
+                '&:hover': { bgcolor: '#3a9b7a' },
+                mr: 1 
+              }}
+              onClick={() => setMoodDialogOpen(true)}
             >
-              
+              Mood Check
+            </MoodEntryButton>
+            
+            <Tooltip title="Notifications">
+              <Button
+                variant="outlined"
+                startIcon={
+                  <SvgIcon fontSize="small">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
+                      <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
+                    </svg>
+                  </SvgIcon>
+                }
+                sx={{ borderRadius: 2 }}
+              >
+                
+              </Button>
+            </Tooltip>
+          </Box>
+          
+          {/* Mobile menu button - Hidden on desktop */}
+          <Box sx={{ display: { xs: 'flex', sm: 'none' }, gap: 1, flexDirection: 'row', alignItems: 'center' }}>
+            <MoodCheckButton 
+              onClick={() => setMoodDialogOpen(true)}
+              sx={{ mr: 1 }}
+            >
+              <SvgIcon>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </SvgIcon>
+            </MoodCheckButton>
+            
+            <Button 
+              color="inherit" 
+              onClick={() => handleNavigate('/')} 
+              startIcon={
+                <SvgIcon fontSize="small">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" fill="currentColor" viewBox="0 0 256 256">
+                    <path d="M168.49,71.51a12,12,0,0,0,-17,0L104,119,56.49,71.51a12,12,0,0,0,-17,0,12,12,0,0,0,0,17l65,65a12,12,0,0,0,17,0l65,-65a12,12,0,0,0,0,-17"></path>
+                  </svg>
+                </SvgIcon>
+              }
+              size="small"
+            >
+              Home
             </Button>
-          </Tooltip>
+            
+            <IconButton 
+              size="large" 
+              edge="end" 
+              color="inherit" 
+              aria-label="menu"
+              onClick={handleMobileMenuOpen}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
+                <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
+              </svg>
+            </IconButton>
+          </Box>
           
           {/* User profile */}
           <Tooltip title="Account">
@@ -327,7 +603,7 @@ const MoodDashboard = () => {
           <Tooltip title="Account">
             <IconButton
               onClick={handleUserMenuOpen}
-              sx={{ display: { xs: 'flex', sm: 'none' }, ml: 1 }}
+              sx={{ display: { xs: 'flex', sm: 'none' }, ml: 1, mr: 1 }}
             >
               <Avatar
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAv7_7qqBvfJLjDB9bg7LqHNoPjNdNtkp2KTveeOVuTOsi3CyqflEoLZBWtp9XqzXH2dZqAs6oDNndCDz53e5f0Ev-viYCd2zPirQe8wcfcRIzScLhlz-4kn86rN8VI8t2GQXTagYGYo2hd1ECa_eHFjJBGcak9KdvZcIsl0MP107l1l-VrMHI9RsKDbzyFu8aBgFFW3jaqn-Ve_QPnaMhmaGh05vdSHqx09YMEgnI4WvmI0sRfLRmrk0Rg-PJXekCOaripeaGr8HX"
@@ -344,7 +620,7 @@ const MoodDashboard = () => {
             onClose={handleMobileMenuClose}
             sx={{ display: { xs: 'block', sm: 'none' } }}
           >
-            <MenuItem onClick={handleMobileMenuClose}>Home</MenuItem>
+            <MenuItem onClick={() => { handleNavigate('/'); handleMobileMenuClose(); }}>Home</MenuItem>
             <MenuItem onClick={handleMobileMenuClose}>Journal</MenuItem>
             <MenuItem onClick={handleMobileMenuClose}>Challenges</MenuItem>
             <MenuItem onClick={handleMobileMenuClose}>Resources</MenuItem>
@@ -375,15 +651,37 @@ const MoodDashboard = () => {
         </Toolbar>
       </StyledAppBar>
 
+      {/* Mood Entry Dialog */}
+      <MoodEntryDialog
+        open={moodDialogOpen}
+        onClose={() => setMoodDialogOpen(false)}
+        onSubmit={handleMoodEntrySubmit}
+      />
+
       <Container maxWidth="xl" sx={{ mt: { xs: 2, sm: 3, md: 4 } }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Typography variant={{ xs: 'h4', sm: 'h3', md: 'h4' }} component="h1" color="#0d1b14" gutterBottom>
-            Welcome back, {user?.displayName || 'Emily'}
-          </Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
+            <Typography variant={{ xs: 'h4', sm: 'h3', md: 'h4' }} component="h1" color="#0d1b14" gutterBottom>
+              Welcome back, {user?.displayName || 'Emily'}
+            </Typography>
+            
+            <Box display="flex" alignItems="center" gap={2}>
+              <Box display="flex" alignItems="center">
+                <Typography sx={{ mr: 1 }}>How are you feeling today?</Typography>
+                <Rating
+                  name="pulsating-mood"
+                  size="large"
+                  value={currentMood}
+                  onChange={(_, value) => setCurrentMood(value)}
+                  precision={0.5}
+                />
+              </Box>
+            </Box>
+          </Box>
         </motion.div>
 
         {/* Mood Trends Section */}
@@ -429,13 +727,15 @@ const MoodDashboard = () => {
               <Box display="flex" flexWrap="wrap" justifyContent={{ xs: 'start', sm: 'space-between' }} alignItems="center" mb={2}>
                 <Box>
                   <Typography variant={isMobile ? "h5" : "h4"} component="p" color="#0d1b14" fontWeight="bold" gutterBottom>
-                    Average Mood: 3.5
+                    Average Mood: {averageMood}
                   </Typography>
                   <Box display="flex" alignItems="center" gap={2}>
                     <Typography color="#4c9a73" fontSize={{ xs: 12, sm: 14 }}>
                       Last 7 Days
                     </Typography>
-                    <Chip label="+10%" size="small" color="success" />
+                    {averageMood > 3 && (
+                      <Chip label="+10%" size="small" color="success" />
+                    )}
                   </Box>
                 </Box>
                 <Box sx={{ width: { xs: '100%', sm: '40%', md: '45%' }, mt: { xs: 2, sm: 0 } }}>
