@@ -33,18 +33,18 @@ import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 
 import { auth, db } from '../firebase/config';
-import { 
-  onAuthStateChanged, 
-  signOut 
+import {
+  onAuthStateChanged,
+  signOut
 } from 'firebase/auth';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  onSnapshot, 
-  addDoc 
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  onSnapshot,
+  addDoc
 } from 'firebase/firestore';
 
 // Styled components
@@ -105,78 +105,267 @@ const MoodCheckButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const MoodChart = () => {
+const MoodChart = ({ moodEntries }) => {
   const [data, setData] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(null);
 
   useEffect(() => {
-    // Mock data for demonstration
-    const mockData = [
-      { day: 'Mon', mood: 3 },
-      { day: 'Tue', mood: 4 },
-      { day: 'Wed', mood: 2 },
-      { day: 'Thu', mood: 5 },
-      { day: 'Fri', mood: 3 },
-      { day: 'Sat', mood: 4 },
-      { day: 'Sun', mood: 4 },
-    ];
-    setData(mockData);
-  }, []);
+    // Transform mood entries to chart format
+    if (moodEntries && moodEntries.length > 0) {
+      // Get the last 7 entries and format them for the chart
+      const last7Entries = moodEntries.slice(0, 7).reverse();
+      
+      const chartData = last7Entries.map((entry, index) => {
+        // Get day name from timestamp
+        const date = entry.timestamp ? new Date(entry.timestamp) : new Date();
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayName = days[date.getDay()];
+        
+        // If this is the current/most recent entry, use "Today" instead of actual day
+        if (index === 0) {
+          return { 
+            day: 'Today', 
+            mood: Math.max(0, Math.min(5, entry.mood || 0)) // Clamp mood value between 0-5
+          };
+        }
+        
+        return { 
+          day: dayName, 
+          mood: Math.max(0, Math.min(5, entry.mood || 0)) // Clamp mood value between 0-5
+        };
+      });
+      
+      setData(chartData);
+    } else {
+      // Handle case when there's no data or loading
+      setData([
+        { day: 'Today', mood: 0 },
+        { day: '-', mood: 0 },
+        { day: '-', mood: 0 },
+        { day: '-', mood: 0 },
+        { day: '-', mood: 0 },
+        { day: '-', mood: 0 },
+        { day: '-', mood: 0 },
+      ]);
+    }
+  }, [moodEntries]);
 
-  if (data.length === 0) {
-    return <div>Loading mood trends...</div>;
+  if (!data || data.length === 0) {
+    return <LinearProgress />;
   }
 
   const maxMood = 5;
+  
+  // Calculate smoothed curve path
+  const calculatePath = () => {
+    if (!data || data.length === 0) return '';
+    
+    let path = `M0 ${150 - (data[0]?.mood || 0) / maxMood * 120}`;
+    
+    for (let i = 1; i < data.length; i++) {
+      const prevX = (i - 1) * 68;
+      const currX = i * 68;
+      const prevY = 150 - (data[i - 1]?.mood || 0) / maxMood * 120;
+      const currY = 150 - (data[i]?.mood || 0) / maxMood * 120;
+      
+      // Create a smooth curve between points
+      const cp1x = prevX + (currX - prevX) * 0.5;
+      const cp1y = prevY;
+      const cp2x = currX - (currX - prevX) * 0.5;
+      const cp2y = currY;
+      
+      path += ` C${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${currX} ${currY}`;
+    }
+    
+    return path;
+  };
+  
+  // Calculate area under curve for gradient fill
+  const calculateAreaPath = () => {
+    if (!data || data.length === 0) return '';
+    
+    let path = `M0 ${150} L0 ${150 - (data[0]?.mood || 0) / maxMood * 120}`;
+    
+    // Reuse the calculatePath function to create the curve
+    const curvePath = calculatePath();
+    path += curvePath.slice(1); // Remove 'M' and add the rest of the path
+    
+    // Add closing shape
+    const lastX = (data.length - 1) * 68;
+    path += ` L${lastX} ${150} Z`;
+    
+    return path;
+  };
 
   return (
     <ChartContainer>
-      <svg viewBox="0 0 478 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Background gradient */}
-        <defs>
-          <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#e7f3ed" stopOpacity={0.8} />
-            <stop offset="100%" stopColor="#e7f3ed" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        
-        {/* Chart area */}
-        <path d={`M0 ${150 - (data[0].mood / maxMood) * 140} 
-                  C18 150-18 150 36 ${150 - (data[1].mood / maxMood) * 140}
-                  C54 90-54 90 72 ${150 - (data[2].mood / maxMood) * 140}
-                  C90 ${220-90} -90 180 108 ${150 - (data[3].mood / maxMood) * 140}
-                  C126 ${30-30} -126 72 144 ${150 - (data[4].mood / maxMood) * 140}
-                  C162 ${90} -162 180 180 ${150 - (data[5].mood / maxMood) * 140}
-                  C198 ${90} -198 36 216 ${150 - (data[6].mood / maxMood) * 140}
-                  L478 ${150 - (data[6].mood / maxMood) * 140} L478 150 L0 150 Z`} 
-          fill="url(#gradient)" />
-        
-        {/* Line chart */}
-        <path d={`M0 ${150 - (data[0].mood / maxMood) * 140} 
-                  C18 150-18 150 36 ${150 - (data[1].mood / maxMood) * 140}
-                  C54 90-54 90 72 ${150 - (data[2].mood / maxMood) * 140}
-                  C90 ${220-90} -90 180 108 ${150 - (data[3].mood / maxMood) * 140}
-                  C126 ${30-30} -126 72 144 ${150 - (data[4].mood / maxMood) * 140}
-                  C162 ${90} -162 180 180 ${150 - (data[5].mood / maxMood) * 140}
-                  C198 ${90} -198 36 216 ${150 - (data[6].mood / maxMood) * 140}`} 
-          stroke="#4c9a73"
-          strokeWidth="3"
-          fill="none" />
+      <Box position="relative" sx={{ width: '100%', height: '100%' }}>
+        <svg 
+          viewBox="0 0 478 150" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ height: '100%', width: '100%' }}
+        >
+          {/* Definitions for gradients and filters */}
+          <defs>
+            {/* Gradient for line chart */}
+            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#42f099" />
+              <stop offset="100%" stopColor="#3a9b7a" />
+            </linearGradient>
+            
+            {/* Gradient for area fill */}
+            <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#4c9a73" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="#4c9a73" stopOpacity={0.05} />
+            </linearGradient>
+            
+            {/* Shadow effect for data points */}
+            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+              <feOffset dx="0" dy="1" result="offsetblur"/>
+              <feFlood floodColor="#000000" floodOpacity="0.1"/>
+              <feComposite in2="offsetblur" operator="in"/>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
           
-        {/* Data points */}
-        {data.map((point, index) => (
-          <circle cx={index * 68} cy={150 - (point.mood / maxMood) * 140} r="4" fill="#42f099" key={index} />
-        ))}
-        
-        {/* Day labels - adjusted for mobile */}
-        <g fill="#4c9a73" fontSize={{ xs: 10, sm: 12 }} fontWeight="bold" textAnchor="middle">
+          {/* Background chart area */}
+          <rect width="478" height="150" fill="#f8fcfa" rx="8" />
+          
+          {/* Grid lines for better readability */}
+          <g stroke="#e7f3ed" strokeWidth="1">
+            {/* Horizontal grid lines */}
+            {Array.from({ length: 6 }).map((_, i) => (
+              <line 
+                key={`h-${i}`} 
+                x1="50" 
+                y1={30 + i * 20} 
+                x2="428" 
+                y2={30 + i * 20} 
+              />
+            ))}
+            
+            {/* Vertical grid lines */}
+            {Array.from({ length: 7 }).map((_, i) => (
+              <line 
+                key={`v-${i}`} 
+                x1={45 + i * 68} 
+                y1="30" 
+                x2={45 + i * 68} 
+                y2="130" 
+              />
+            ))}
+          </g>
+          
+          {/* Chart axis labels */}
+          <g fill="#4c9a73" fontSize="10" fontWeight="500">
+            {/* Left axis - mood labels */}
+            <text x="30" y="35" textAnchor="end">5</text>
+            <text x="30" y="55" textAnchor="end">4</text>
+            <text x="30" y="75" textAnchor="end">3</text>
+            <text x="30" y="95" textAnchor="end">2</text>
+            <text x="30" y="115" textAnchor="end">1</text>
+            <text x="30" y="135" textAnchor="end">0</text>
+            
+            {/* Bottom axis - day labels (slightly smaller) */}
+            {data.map((point, index) => (
+              <text 
+                key={`label-${index}`}
+                x={45 + index * 68} 
+                y="145" 
+                textAnchor="middle"
+                fontSize="9"
+                fill={index === 0 ? "#42f099" : "#4c9a73"}
+              >
+                {point.day}
+              </text>
+            ))}
+          </g>
+          
+          {/* Area under the curve with gradient fill */}
+          {data.length > 1 && (
+            <path 
+              d={calculateAreaPath()} 
+              fill="url(#areaGradient)"
+              opacity="0.7"
+            />
+          )}
+          
+          {/* Line chart with smooth curve */}
+          {data.length > 1 && (
+            <path 
+              d={calculatePath()} 
+              stroke="url(#lineGradient)"
+              strokeWidth="3" 
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+          
+          {/* Data points with hover effect */}
           {data.map((point, index) => (
-            <text x={index * 68 + 25} y="145" key={index}>{point.day}</text>
+            <g 
+              key={`point-${index}`}
+              onMouseEnter={() => setActiveIndex(index)}
+              onMouseLeave={() => setActiveIndex(null)}
+              cursor="pointer"
+            >
+              <circle 
+                cx={45 + index * 68} 
+                cy={150 - (point.mood / maxMood) * 120} 
+                r="5" 
+                fill="white"
+                stroke={index === 0 ? "#42f099" : "#4c9a73"}
+                strokeWidth="2"
+                filter="url(#shadow)"
+              />
+              {/* Inner circle that grows on hover */}
+              {activeIndex === index && (
+                <circle 
+                  cx={45 + index * 68} 
+                  cy={150 - (point.mood / maxMood) * 120} 
+                  r="8" 
+                  fill={index === 0 ? "#42f099" : "#4c9a73"}
+                  opacity="0.2"
+                />
+              )}
+            </g>
           ))}
-        </g>
-      </svg>
+          
+          {/* Mood value tooltip on hover */}
+          {activeIndex !== null && (
+            <g>
+              <rect 
+                x={35 + activeIndex * 68 - 20} 
+                y={15 - (data[activeIndex]?.mood / maxMood) * 120 - 25} 
+                width="40" 
+                height="20" 
+                rx="4" 
+                fill="#4c9a73"
+              />
+              <text 
+                x={45 + activeIndex * 68} 
+                y={15 - (data[activeIndex]?.mood / maxMood) * 120 - 12} 
+                textAnchor="middle" 
+                fill="white" 
+                fontSize="11" 
+                fontWeight="bold"
+              >
+                {data[activeIndex]?.mood}
+              </text>
+            </g>
+          )}
+        </svg>
+      </Box>
     </ChartContainer>
   );
 };
+
 
 const MoodEntryDialog = ({ open, onClose, onSubmit }) => {
   const [mood, setMood] = useState(3);
@@ -191,7 +380,7 @@ const MoodEntryDialog = ({ open, onClose, onSubmit }) => {
       journalEntry,
       timestamp: new Date().toISOString(),
     };
-    
+
     onSubmit(moodEntry);
     onClose();
     // Reset form
@@ -201,11 +390,11 @@ const MoodEntryDialog = ({ open, onClose, onSubmit }) => {
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
-      fullWidth 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
       PaperProps={{ sx: { borderRadius: '16px', p: 0 } }}
     >
       <DialogTitle sx={{ p: 3, borderBottom: '1px solid #e7f3ed', color: '#0d1b14', fontWeight: 'bold' }}>
@@ -228,15 +417,15 @@ const MoodEntryDialog = ({ open, onClose, onSubmit }) => {
               />
             </Box>
             <Box display="flex" justifyContent="center" mt={1}>
-              <Chip 
-                label={`${mood} out of 5`} 
-                color="success" 
-                size="small" 
+              <Chip
+                label={`${mood} out of 5`}
+                color="success"
+                size="small"
                 sx={{ backgroundColor: '#e7f3ed', color: '#0d1b14' }}
               />
             </Box>
           </Box>
-          
+
           <Box>
             <Typography variant="subtitle1" sx={{ mb: 2, color: '#4c9a73' }}>
               Optional Notes
@@ -252,7 +441,7 @@ const MoodEntryDialog = ({ open, onClose, onSubmit }) => {
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
             />
           </Box>
-          
+
           <Box>
             <Typography variant="subtitle1" sx={{ mb: 2, color: '#4c9a73' }}>
               Journal Entry
@@ -274,11 +463,11 @@ const MoodEntryDialog = ({ open, onClose, onSubmit }) => {
         <Button onClick={onClose} variant="outlined" sx={{ borderRadius: '8px' }}>
           Cancel
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
-          sx={{ 
-            borderRadius: '8px', 
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          sx={{
+            borderRadius: '8px',
             bgcolor: '#4c9a73',
             '&:hover': { bgcolor: '#3a9b7a' }
           }}
@@ -298,11 +487,11 @@ const MoodDashboard = () => {
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [moodData, setMoodData] = useState(null);
   const [moodEntries, setMoodEntries] = useState([]);
-  const [averageMood, setAverageMood] = useState(3.5);
+  const [filteredMoodEntries, setFilteredMoodEntries] = useState([]);
+  const [averageMood, setAverageMood] = useState(0);
   const [moodDialogOpen, setMoodDialogOpen] = useState(false);
-  const [currentMood, setCurrentMood] = useState(3); // Fixed: Added state for currentMood
+  const [currentMood, setCurrentMood] = useState(3);
   const navigate = useNavigate();
 
   // Firebase auth state observer
@@ -322,24 +511,48 @@ const MoodDashboard = () => {
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const entries = [];
-      let totalMood = 0;
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         entries.push({ id: doc.id, ...data });
-        totalMood += data.mood || 0;
       });
       
-      setMoodEntries(entries);
+      // Filter based on selected timeframe
+      const now = new Date();
+      let cutoffDate;
       
-      if (entries.length > 0) {
-        const avg = totalMood / entries.length;
-        setAverageMood(parseFloat(avg.toFixed(1)));
+      if (timeframe === 'week') {
+        cutoffDate = new Date();
+        cutoffDate.setDate(now.getDate() - 7);
+      } else if (timeframe === 'month') {
+        cutoffDate = new Date();
+        cutoffDate.setMonth(now.getMonth() - 1);
+      } else {
+        cutoffDate = new Date(0); // Earliest possible date
       }
+      
+      // Filter entries based on timeframe
+      const filteredEntries = entries.filter(entry => 
+        entry.timestamp && new Date(entry.timestamp) >= cutoffDate
+      );
+      
+      setFilteredMoodEntries(filteredEntries);
+      setMoodEntries(entries); // Keep all entries for potential other uses
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, timeframe]);
+
+  // Calculate average mood based on filtered entries
+  useEffect(() => {
+    if (filteredMoodEntries.length > 0) {
+      const totalMood = filteredMoodEntries.reduce((sum, entry) => sum + (entry.mood || 0), 0);
+      const avg = totalMood / filteredMoodEntries.length;
+      setAverageMood(parseFloat(avg.toFixed(1)));
+    } else {
+      setAverageMood(0);
+    }
+  }, [filteredMoodEntries]);
 
   // Mobile menu handlers
   const handleMobileMenuOpen = (event) => {
@@ -364,7 +577,7 @@ const MoodDashboard = () => {
     navigate(path);
   };
 
-  // Logout handler - Fixed: Added signOut function
+  // Logout handler
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -378,7 +591,7 @@ const MoodDashboard = () => {
   // Mood entry handler
   const handleMoodEntrySubmit = async (moodEntry) => {
     if (!user) return;
-    
+
     try {
       await addDoc(collection(db, 'users', user.uid, 'mood_entries'), moodEntry);
       // The onSnapshot listener will automatically update the moodEntries and averageMood
@@ -478,14 +691,14 @@ const MoodDashboard = () => {
               MoodApp
             </Typography>
           </Box>
-          
+
           <Box sx={{ flexGrow: 1 }} />
-          
+
           {/* Desktop Navigation - Visible on desktop */}
           <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1, flexDirection: 'row', alignItems: 'center' }}>
-            <Button 
-              color="inherit" 
-              onClick={() => handleNavigate('/')} 
+            <Button
+              color="inherit"
+              onClick={() => handleNavigate('/')}
               startIcon={
                 <SvgIcon fontSize="small">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" fill="currentColor" viewBox="0 0 256 256">
@@ -496,15 +709,15 @@ const MoodDashboard = () => {
             >
               Home
             </Button>
-            
+
             <Button color="inherit">Journal</Button>
             <Button color="inherit">Challenges</Button>
             <Button color="inherit">Resources</Button>
           </Box>
-          
+
           {/* Mood Entry Button */}
           <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
-            <MoodEntryButton 
+            <MoodEntryButton
               startIcon={
                 <SvgIcon fontSize="small">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -515,16 +728,16 @@ const MoodDashboard = () => {
                 </SvgIcon>
               }
               variant="contained"
-              sx={{ 
+              sx={{
                 bgcolor: '#4c9a73',
                 '&:hover': { bgcolor: '#3a9b7a' },
-                mr: 1 
+                mr: 1
               }}
               onClick={() => setMoodDialogOpen(true)}
             >
               Mood Check
             </MoodEntryButton>
-            
+
             <Tooltip title="Notifications">
               <Button
                 variant="outlined"
@@ -537,14 +750,14 @@ const MoodDashboard = () => {
                 }
                 sx={{ borderRadius: 2 }}
               >
-                
+
               </Button>
             </Tooltip>
           </Box>
-          
+
           {/* Mobile menu button - Hidden on desktop */}
           <Box sx={{ display: { xs: 'flex', sm: 'none' }, gap: 1, flexDirection: 'row', alignItems: 'center' }}>
-            <MoodCheckButton 
+            <MoodCheckButton
               onClick={() => setMoodDialogOpen(true)}
               sx={{ mr: 1 }}
             >
@@ -556,10 +769,10 @@ const MoodDashboard = () => {
                 </svg>
               </SvgIcon>
             </MoodCheckButton>
-            
-            <Button 
-              color="inherit" 
-              onClick={() => handleNavigate('/')} 
+
+            <Button
+              color="inherit"
+              onClick={() => handleNavigate('/')}
               startIcon={
                 <SvgIcon fontSize="small">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" fill="currentColor" viewBox="0 0 256 256">
@@ -571,11 +784,11 @@ const MoodDashboard = () => {
             >
               Home
             </Button>
-            
-            <IconButton 
-              size="large" 
-              edge="end" 
-              color="inherit" 
+
+            <IconButton
+              size="large"
+              edge="end"
+              color="inherit"
               aria-label="menu"
               onClick={handleMobileMenuOpen}
             >
@@ -584,7 +797,7 @@ const MoodDashboard = () => {
               </svg>
             </IconButton>
           </Box>
-          
+
           {/* User profile */}
           <Tooltip title="Account">
             <IconButton
@@ -598,7 +811,7 @@ const MoodDashboard = () => {
               />
             </IconButton>
           </Tooltip>
-          
+
           {/* Mobile Profile */}
           <Tooltip title="Account">
             <IconButton
@@ -612,7 +825,7 @@ const MoodDashboard = () => {
               />
             </IconButton>
           </Tooltip>
-          
+
           {/* Mobile Menu */}
           <Menu
             anchorEl={mobileAnchorEl}
@@ -625,7 +838,7 @@ const MoodDashboard = () => {
             <MenuItem onClick={handleMobileMenuClose}>Challenges</MenuItem>
             <MenuItem onClick={handleMobileMenuClose}>Resources</MenuItem>
           </Menu>
-          
+
           {/* User Menu */}
           <Menu
             anchorEl={userMenuAnchorEl}
@@ -668,7 +881,7 @@ const MoodDashboard = () => {
             <Typography variant={{ xs: 'h4', sm: 'h3', md: 'h4' }} component="h1" color="#0d1b14" gutterBottom>
               Welcome back, {user?.displayName || 'Emily'}
             </Typography>
-            
+
             <Box display="flex" alignItems="center" gap={2}>
               <Box display="flex" alignItems="center">
                 <Typography sx={{ mr: 1 }}>How are you feeling today?</Typography>
@@ -700,7 +913,7 @@ const MoodDashboard = () => {
                   variant={timeframe === 'week' ? 'contained' : 'outlined'}
                   size="small"
                   onClick={() => setTimeframe('week')}
-                  sx={{ 
+                  sx={{
                     borderRadius: 1.5,
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     py: { xs: 0.5, sm: 1 }
@@ -712,7 +925,7 @@ const MoodDashboard = () => {
                   variant={timeframe === 'month' ? 'contained' : 'outlined'}
                   size="small"
                   onClick={() => setTimeframe('month')}
-                  sx={{ 
+                  sx={{
                     borderRadius: 1.5,
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     py: { xs: 0.5, sm: 1 }
@@ -722,24 +935,28 @@ const MoodDashboard = () => {
                 </Button>
               </Box>
             </Box>
-            
+
             <StyledCard sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3 } }}>
               <Box display="flex" flexWrap="wrap" justifyContent={{ xs: 'start', sm: 'space-between' }} alignItems="center" mb={2}>
                 <Box>
                   <Typography variant={isMobile ? "h5" : "h4"} component="p" color="#0d1b14" fontWeight="bold" gutterBottom>
-                    Average Mood: {averageMood}
+                    Average Mood: {averageMood > 0 ? averageMood.toFixed(1) : 'N/A'}
                   </Typography>
                   <Box display="flex" alignItems="center" gap={2}>
                     <Typography color="#4c9a73" fontSize={{ xs: 12, sm: 14 }}>
-                      Last 7 Days
+                      Last {timeframe === 'week' ? '7 Days' : '30 Days'}
                     </Typography>
-                    {averageMood > 3 && (
-                      <Chip label="+10%" size="small" color="success" />
+                    {averageMood > 0 && filteredMoodEntries.length > 0 && (
+                      <Chip 
+                        label={averageMood > 3 ? "Positive" : "Needs Attention"} 
+                        size="small" 
+                        color={averageMood > 3 ? "success" : "warning"} 
+                      />
                     )}
                   </Box>
                 </Box>
                 <Box sx={{ width: { xs: '100%', sm: '40%', md: '45%' }, mt: { xs: 2, sm: 0 } }}>
-                  <MoodChart />
+                  <MoodChart moodEntries={filteredMoodEntries} />
                 </Box>
               </Box>
             </StyledCard>
@@ -756,7 +973,7 @@ const MoodDashboard = () => {
             <Typography variant={{ xs: 'h6', sm: 'h5', md: 'h5' }} component="h2" color="#0d1b14" fontWeight="bold" gutterBottom>
               Recent Journal Entries
             </Typography>
-            
+
             <Grid container spacing={{ xs: 2, sm: 3 }}>
               {journalEntries.map((entry, index) => (
                 <Grid item xs={12} sm={6} md={4} key={index}>
@@ -765,10 +982,10 @@ const MoodDashboard = () => {
                       <Typography color="#4c9a73" fontSize={{ xs: 11, sm: 12 }}>
                         {entry.date}
                       </Typography>
-                      <Typography 
-                        fontWeight="bold" 
-                        color="#0d1b14" 
-                        mb={1} 
+                      <Typography
+                        fontWeight="bold"
+                        color="#0d1b14"
+                        mb={1}
                         mt={0.5}
                         variant={{ xs: 'body1', sm: 'h6', md: 'h6' }}
                       >
@@ -813,20 +1030,20 @@ const MoodDashboard = () => {
             <Typography variant={{ xs: 'h6', sm: 'h5', md: 'h5' }} component="h2" color="#0d1b14" fontWeight="bold" gutterBottom>
               Active Challenges
             </Typography>
-            
+
             <Grid container spacing={{ xs: 2, sm: 3 }}>
               {challenges.map((challenge, index) => (
                 <Grid item xs={12} sm={6} md={6} key={index}>
                   <StyledCard sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Typography 
-                      variant={isMobile ? "h6" : "h6"} 
-                      fontWeight="bold" 
-                      color="#0d1b14" 
+                    <Typography
+                      variant={isMobile ? "h6" : "h6"}
+                      fontWeight="bold"
+                      color="#0d1b14"
                       gutterBottom
                     >
                       {challenge.title}
                     </Typography>
-                    
+
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Typography fontSize={{ xs: 11, sm: 14 }} color="#4c9a73">
                         Progress: {challenge.daysCompleted}/30 days
@@ -865,15 +1082,15 @@ const MoodDashboard = () => {
             <Typography variant={{ xs: 'h6', sm: 'h5', md: 'h5' }} component="h2" color="#0d1b14" fontWeight="bold" gutterBottom>
               Quick Resources
             </Typography>
-            
+
             <Grid container spacing={{ xs: 2, sm: 3 }}>
               {resources.map((resource, index) => (
                 <Grid item xs={12} sm={6} md={6} key={index}>
                   <StyledCard sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Typography 
-                      variant={isMobile ? "h6" : "h6"} 
-                      fontWeight="bold" 
-                      color="#0d1b14" 
+                    <Typography
+                      variant={isMobile ? "h6" : "h6"}
+                      fontWeight="bold"
+                      color="#0d1b14"
                       gutterBottom
                     >
                       {resource.title}
@@ -897,7 +1114,7 @@ const MoodDashboard = () => {
             </Grid>
           </motion.div>
         </Box>
-        
+
         {/* Custom spacing for mobile devices */}
         <Box sx={{ height: { xs: 80, sm: 0 } }} />
       </Container>
