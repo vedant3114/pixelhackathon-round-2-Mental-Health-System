@@ -4,6 +4,8 @@
 /server/node_modules
 # server/.env
 /server/firebase/serviceAccountKey.json*
+/server/firebase/serviceAccountKey.json.json*
+
 
 
 # React (frontend)
