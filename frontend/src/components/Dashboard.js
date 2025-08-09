@@ -731,62 +731,94 @@ const MoodDashboard = () => {
     getNotifications();
   }, [user]);
 
-  // Effect to generate personalized challenges based on PHQ-9 score
-  useEffect(() => {
-    if (!phq9Data) return;
+ // Effect to generate personalized challenges based on PHQ-9 score
+useEffect(() => {
+  if (!phq9Data) return;
 
-    // Challenge logic based on PHQ-9 score
-    let personalized = [];
+  // Challenge logic based on PHQ-9 score
+  let personalized = [];
 
-    if (phq9Data.score >= 15) {
-      personalized = [
-        {
-          title: "Professional Support",
-          description: "Connect with a mental health professional for guidance",
-          type: "professional",
-          severity: "high"
-        },
-        {
-          title: "Daily Check-ins",
-          description: "Set reminders to check in with yourself 3 times a day",
-          type: "behavior",
-          severity: "high"
-        }
-      ];
-    } else if (phq9Data.score >= 10) {
-      personalized = [
-        {
-          title: "Mindfulness Practice",
-          description: "10-minute guided meditation every morning",
-          type: "mindfulness",
-          severity: "medium"
-        },
-        {
-          title: "Social Connection",
-          description: "Reach out to a friend or family member daily",
-          type: "social",
-          severity: "medium"
-        }
-      ];
-    } else if (phq9Data.score >= 5) {
-      personalized = [
-        {
-          title: "Gratitude Journal",
-          description: "Write down 3 things you're grateful for each day",
-          type: "gratitude",
-          severity: "low"
-        },
-        {
-          title: "Physical Activity",
-          description: "20-minute walk or exercise every day",
-          type: "physical",
-          severity: "low"
-        }
-      ];
+  if (phq9Data.score >= 15) {
+    personalized = [
+      {
+        title: "Professional Support",
+        description: "Connect with a mental health professional for guidance",
+        type: "professional",
+        severity: "high"
+      },
+      {
+        title: "Daily Check-ins",
+        description: "Set reminders to check in with yourself 3 times a day",
+        type: "behavior",
+        severity: "high"
+      }
+    ];
+  } else if (phq9Data.score >= 10) {
+    personalized = [
+      {
+        title: "Mindfulness Practice",
+        description: "10-minute guided meditation every morning",
+        type: "mindfulness",
+        severity: "medium"
+      },
+      {
+        title: "Social Connection",
+        description: "Reach out to a friend or family member daily",
+        type: "social",
+        severity: "medium"
+      }
+    ];
+  } else if (phq9Data.score >= 5) {
+    personalized = [
+      {
+        title: "Gratitude Journal",
+        description: "Write down 3 things you're grateful for each day",
+        type: "gratitude",
+        severity: "low"
+      },
+      {
+        title: "Physical Activity",
+        description: "20-minute walk or exercise every day",
+        type: "physical",
+        severity: "low"
+      }
+    ];
+  }
+
+  setPersonalizedChallenges(personalized);
+
+  // Save to user's document in Firestore
+  if (personalized.length > 0) {
+    const updateUserDoc = async () => {
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        personalizedChallenges: personalized
+      });
+    };
+    
+    updateUserDoc();
+  }
+}, [phq9Data, user]);
+
+// Effect to load personalized challenges from Firestore
+useEffect(() => {
+  if (!user) return;
+
+  const loadPersonalizedChallenges = async () => {
+    try {
+      const userDoc = await doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userDoc);
+
+      if (userSnap.exists() && userSnap.data().personalizedChallenges) {
+        setPersonalizedChallenges(userSnap.data().personalizedChallenges);
+      }
+    } catch (error) {
+      console.error('Error loading personalized challenges:', error);
     }
+  };
 
-    setPersonalizedChallenges(personalized);
-  }, [phq9Data]);
+  loadPersonalizedChallenges();
+}, [user]);
 
   // Mobile menu handlers
   const handleMobileMenuOpen = (event) => {
@@ -836,75 +868,112 @@ const MoodDashboard = () => {
   };
 
   // PHQ-9 submission handler
-  const handlePhq9Submit = async (responses) => {
-    if (!user) return;
+  // PHQ-9 submission handler
+const handlePhq9Submit = async (responses) => {
+  if (!user) return;
 
-    const totalScore = responses.reduce((sum, score) => sum + score, 0);
+  const totalScore = responses.reduce((sum, score) => sum + score, 0);
 
-    try {
-      // Save PHQ-9 responses to Firestore
-      await addDoc(collection(db, 'users', user.uid, 'phq9_responses'), {
-        responses,
-        score: totalScore,
-        timestamp: new Date().toISOString(),
-        moodHistory: filteredMoodEntries
+  try {
+    // Generate personalized challenges based on score
+    let personalized = [];
+    
+    if (totalScore >= 15) {
+      personalized = [
+        {
+          title: "Professional Support",
+          description: "Connect with a mental health professional for guidance",
+          type: "professional",
+          severity: "high"
+        },
+        {
+          title: "Daily Check-ins",
+          description: "Set reminders to check in with yourself 3 times a day",
+          type: "behavior",
+          severity: "high"
+        }
+      ];
+    } else if (totalScore >= 10) {
+      personalized = [
+        {
+          title: "Mindfulness Practice",
+          description: "10-minute guided meditation every morning",
+          type: "mindfulness",
+          severity: "medium"
+        },
+        {
+          title: "Social Connection",
+          description: "Reach out to a friend or family member daily",
+          type: "social",
+          severity: "medium"
+        }
+      ];
+    } else if (totalScore >= 5) {
+      personalized = [
+        {
+          title: "Gratitude Journal",
+          description: "Write down 3 things you're grateful for each day",
+          type: "gratitude",
+          severity: "low"
+        },
+        {
+          title: "Physical Activity",
+          description: "20-minute walk or exercise every day",
+          type: "physical",
+          severity: "low"
+        }
+      ];
+    }
+
+    // Save PHQ-9 responses to Firestore
+    const phq9ResponseRef = await addDoc(collection(db, 'users', user.uid, 'phq9_responses'), {
+      responses,
+      score: totalScore,
+      timestamp: new Date().toISOString(),
+      moodHistory: filteredMoodEntries
+    });
+
+    // Save personalized challenges to Firestore
+    if (personalized.length > 0) {
+      await updateDoc(doc(db, 'users', user.uid, 'phq9_responses', phq9ResponseRef.id), {
+        personalizedChallenges: personalized
       });
+    }
 
-      // Update user's profile with PHQ-9 status
-      const userDocRef = doc(db, 'users', user.uid);
+    // Update user's profile with PHQ-9 status
+    const userDocRef = doc(db, 'users', user.uid);
+    await updateDoc(userDocRef, {
+      lastPhq9Date: new Date().toISOString(),
+      phq9History: [...(user?.phq9History || []), {
+        score: totalScore,
+        timestamp: new Date().toISOString()
+      }]
+    });
+
+    // Store PHQ-9 data locally
+    setPhq9Data({
+      score: totalScore,
+      responses,
+      timestamp: new Date().toISOString()
+    });
+
+    // Add mood alert for low scores
+    if (totalScore >= 15) {
       await updateDoc(userDocRef, {
-        lastPhq9Date: new Date().toISOString(),
-        phq9History: [...(user?.phq9History || []), {
-          score: totalScore,
-          timestamp: new Date().toISOString()
+        moodAlerts: [...(user?.moodAlerts || []), {
+          date: new Date().toISOString(),
+          days: lowMoodDays,
+          message: `Your PHQ-9 score indicates moderate to severe depression. Consider professional support immediately.`
         }]
       });
-
-      // Store PHQ-9 data locally
-      setPhq9Data({
-        score: totalScore,
-        responses,
-        timestamp: new Date().toISOString()
-      });
-
-      // Add mood alert for low scores
-      if (totalScore >= 15) {
-        await updateDoc(userDocRef, {
-          moodAlerts: [...(user?.moodAlerts || []), {
-            date: new Date().toISOString(),
-            days: lowMoodDays,
-            message: `Your PHQ-9 score indicates moderate to severe depression. Consider professional support immediately.`
-          }]
-        });
-      }
-
-    } catch (error) {
-      console.error('Error saving PHQ-9 response:', error);
     }
-  };
 
-  // Mock data
-  const journalEntries = [
-    {
-      date: 'Today',
-      title: 'Reflecting on a Productive Day',
-      mood: 'Happy',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA84sRkepy5eZrwUsA0TbpHcsh0VeG7pODTb5w8S5nfJbIFHvrI-S3I6BJhOVoBxVo1ohE4WESODGicq0J3SRZcIbE-0wBC0AsWlXwNZ0v2hfMJdhnQfCnA85odOS82znfeE9iNvvrqY9fsScy8FzfMx4-srZQ8Na7knIOmk-6nP7-463yGrXa-BrGOUhom8cexOsYyF7DpnTMHH2NguRALFSf6uky1957-k-QAYvwLuRMD23PKkN_Gfaw2tm0x9YpGwRC_knpDJwzx',
-    },
-    {
-      date: 'Yesterday',
-      title: 'Learning to Let Go',
-      mood: 'Calm',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDxga-JSRpjhskQJwQoBNUX2jL4UxTq9LJNpLMyr2iB19AHmy9mORzL-k4F5wd__nlk8QT-d7qGfvW28thWI0mpNKglQi2ipWC6zHd6nMazTlajIPiXTkNGw2TsVlw-PYTtHQgIo3MohPaJxDr1eocaZrQm5nAsjY3-t_5ZrrnqirqLxLZRCsF_ljvyjjaR3GyOF-m52tuAqrCP1suaQYOGcwDJVE6LYGRMf_IwJAkfnQVWdnCvVovaST4xvTX5UqaxBLgbau0eOlrA',
-    },
-    {
-      date: '2 days ago',
-      title: 'Overcoming Challenges',
-      mood: 'Resilient',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgxwlv6-ilH9JYd-AUwG9LBL78rIugLp_sOBJGsjh6j842H4u1kP5wM4AhKcdv4s-X_-hPkjavecy0kZcFq4w9rD0vDskvweuei6gAi0U0iq9DoEbS7AecziEmkXr4ADSXqAnSRAd_aqCTdkhj34HoW4uAK0DnZRo_TkDq6RxfLSYQrs3WuqeoNr2PrIjCEjkmoTrBKLXc-xaVJTVu4lUMVvyZBzkqzOVptVqN9SsX9tE7Dh-CSpWWHLICJTiYXdPN_pU9bol0ITYp',
-    },
-  ];
+  } catch (error) {
+    console.error('Error saving PHQ-9 response:', error);
+  }
+};
 
+ 
   const defaultChallenges = [
     {
       title: '30-Day Mindfulness Challenge',
@@ -1300,64 +1369,6 @@ const MoodDashboard = () => {
             </StyledCard>
           </motion.div>
         </Box>
-
-        {/* Recent Journal Entries */}
-        <Box sx={{ mt: { xs: 4, sm: 6, md: 8 }, mb: { xs: 2, sm: 4, md: 6 } }}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Typography variant={{ xs: 'h6', sm: 'h5', md: 'h5' }} component="h2" color="#0d1b14" fontWeight="bold" gutterBottom>
-              Recent Journal Entries
-            </Typography>
-
-            <Grid container spacing={{ xs: 2, sm: 3 }}>
-              {journalEntries.map((entry, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
-                  <StyledCard sx={{ p: { xs: 1.5, sm: 2 } }}>
-                    <Box display="flex" flexDirection="column" height="100%">
-                      <Typography color="#4c9a73" fontSize={{ xs: 11, sm: 12 }}>
-                        {entry.date}
-                      </Typography>
-                      <Typography
-                        fontWeight="bold"
-                        color="#0d1b14"
-                        mb={1}
-                        mt={0.5}
-                        variant={{ xs: 'body1', sm: 'h6', md: 'h6' }}
-                      >
-                        {entry.title}
-                      </Typography>
-                      <Chip
-                        label={entry.mood}
-                        size="small"
-                        sx={{
-                          mb: 1,
-                          backgroundColor: moods[entry.mood]?.color || '#e7f3ed',
-                          color: '#0d1b14',
-                        }}
-                      />
-                      <Box
-                        sx={{
-                          flexGrow: 1,
-                          mt: 1,
-                          borderRadius: 1,
-                          overflow: 'hidden',
-                          aspectRatio: '16/9',
-                          backgroundImage: `url(${entry.image})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                        }}
-                      />
-                    </Box>
-                  </StyledCard>
-                </Grid>
-              ))}
-            </Grid>
-          </motion.div>
-        </Box>
-
         {/* Active Challenges */}
         <Box sx={{ mt: { xs: 4, sm: 6, md: 8 }, mb: { xs: 2, sm: 4, md: 6 } }}>
           <motion.div
