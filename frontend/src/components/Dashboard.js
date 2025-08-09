@@ -73,6 +73,11 @@ const StyledAppBar = styled(AppBar)(({ theme }) => ({
   borderBottom: '1px solid #e7f3ed',
   background: '#ffffff',
   boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+  display: 'flex',
+  visibility: 'visible',
+  position: 'sticky',
+  top: 0,
+  zIndex: 1100,
 }));
 
 const StyledCard = styled(Paper)(({ theme }) => ({
@@ -1508,8 +1513,8 @@ const MoodDashboard = () => {
     <Root>
       <StyledAppBar position="static" elevation={0}>
         <Toolbar>
-          <Box display="flex" alignItems="center" gap={2}>
-            <SvgIcon fontSize="small">
+          <Box display="flex" alignItems="center" gap={2} sx={{ backgroundColor: '#4c9a73', padding: '8px 16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+            <SvgIcon fontSize="medium" sx={{ color: 'white' }}>
               <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M4 42.4379C4 42.4379 14.0962 36.0744 24 41.1692C35.0664 46.8624 44 42.2078 44 42.2078L44 7.01134C44 7.01134 35.068 11.6577 24.0031 5.96913C14.0971 0.876274 4 7.27094 4 7.27094L4 42.4379Z"
@@ -1517,15 +1522,21 @@ const MoodDashboard = () => {
                 ></path>
               </svg>
             </SvgIcon>
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" fontWeight="bold" sx={{ color: 'white', letterSpacing: '0.5px' }}>
               MoodApp
             </Typography>
           </Box>
 
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Points Badge */}
-          <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', mr: 2 }}>
+          {/* Desktop Navigation - Removed as requested */}
+          <Box sx={{ display: { xs: 'flex', sm: 'flex' }, gap: 1, flexDirection: 'row', alignItems: 'center' }}>
+            {/* Navigation buttons removed as requested */}
+          </Box>
+
+          {/* Mood Entry Button and Points Badge */}
+          <Box sx={{ display: { xs: 'flex', sm: 'flex' }, alignItems: 'center' }}>
+            {/* Points Badge - Moved beside Mood Check */}
             <Chip
               icon={
                 <SvgIcon fontSize="small">
@@ -1535,33 +1546,9 @@ const MoodDashboard = () => {
                 </SvgIcon>
               }
               label={`${points} pts`}
-              sx={{ bgcolor: '#e7f3ed', color: '#0d1b14', fontWeight: 'bold' }}
+              sx={{ bgcolor: '#e7f3ed', color: '#0d1b14', fontWeight: 'bold', mr: 2 }}
             />
-          </Box>
-
-          {/* Desktop Navigation - Visible on desktop */}
-          <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1, flexDirection: 'row', alignItems: 'center' }}>
-            <Button
-              color="inherit"
-              onClick={() => handleNavigate('/')}
-              startIcon={
-                <SvgIcon fontSize="small">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" fill="currentColor" viewBox="0 0 256 256">
-                    <path d="M168.49,71.51a12,12,0,0,0,-17,0L104,119,56.49,71.51a12,12,0,0,0,-17,0,12,12,0,0,0,0,17l65,65a12,12,0,0,0,17,0l65,-65a12,12,0,0,0,0,-17"></path>
-                  </svg>
-                </SvgIcon>
-              }
-            >
-              Home
-            </Button>
-
-            <Button color="inherit" onClick={() => handleNavigate('/journal')}>Journal</Button>
-            <Button color="inherit" onClick={() => handleNavigate('/challenges')}>Challenges</Button>
-            <Button color="inherit" onClick={() => handleNavigate('/resources')}>Resources</Button>
-          </Box>
-
-          {/* Mood Entry Button */}
-          <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
+            
             <MoodEntryButton
               startIcon={
                 <SvgIcon fontSize="small">
