@@ -38,7 +38,10 @@ const Navbar = () => {
 
   return (
     <nav className="navbar">
-      <div className="logo">HackStarter</div>
+      <div className="logo">
+        <div className="logo-icon">💗</div>
+        MoodApp
+      </div>
       <div className="nav-links">
         <a href="#features">Features</a>
         <a href="#about">About</a>
@@ -87,7 +90,7 @@ const Navbar = () => {
                 width: '40px',
                 height: '40px',
                 borderRadius: '50%',
-                backgroundColor: '#2563eb',
+                backgroundColor: '#4c9a73',
                 color: '#fff',
                 display: 'flex',
                 justifyContent: 'center',
@@ -110,7 +113,7 @@ const Navbar = () => {
                     top: '50px',
                     right: 0,
                     background: '#fff',
-                    border: '1px solid #ccc',
+                    border: '1px solid #cfe7db',
                     borderRadius: '6px',
                     padding: '8px',
                     boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
@@ -150,41 +153,117 @@ const Hero = () => (
   <section className="hero">
     <div className="hero-left">
       <h1>
-        Lessons and insights <span className="highlight">from 8 years</span>
+        Take control of your <span className="highlight">mental wellness</span> journey
       </h1>
-      <p>Where to grow your projects better: site or social media?</p>
-      <Link to="/register">
-        <button className="cta-btn">Register</button>
-      </Link>
+      <p>Track your mood, practice mindfulness and build healthy habits with personalized challenges and AI-powered support</p>
+      
+      <div className="stats-container">
+        <div className="stat-item">
+          <div className="stat-number">101K+</div>
+          <div className="stat-label">User Supported</div>
+        </div>
+        <div className="stat-item">
+          <div className="stat-number">24/7</div>
+          <div className="stat-label">Crisis Support</div>
+        </div>
+        <div className="stat-item">
+          <div className="stat-number">95%</div>
+          <div className="stat-label">Satisfaction</div>
+        </div>
+      </div>
+
+      <div className="hero-buttons">
+        <Link to="/register">
+          <button className="cta-btn">Start Your Journey</button>
+        </Link>
+        <Link to="/calming-exercises">
+          <button className="secondary-btn">Learn More</button>
+        </Link>
+      </div>
     </div>
     <div className="hero-right">
-      <img src="#" alt="Hero" />
+      <div className="mood-cards">
+        <div className="mood-card small yellow">
+          <span className="mood-emoji">😌</span>
+          <span className="mood-text">Mindful</span>
+        </div>
+        <div className="mood-card small yellow">
+          <span className="mood-emoji">💪</span>
+          <span className="mood-text">Strong</span>
+        </div>
+        <div className="mood-card small blue">
+          <span className="mood-emoji">✨</span>
+          <span className="mood-text">Hopeful</span>
+        </div>
+        <div className="mood-card large green">
+          <div className="mood-graph">
+            <div className="graph-line">
+              <div className="graph-dot"></div>
+              <div className="graph-dot"></div>
+              <div className="graph-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 );
 
 // Features
 const featuresData = [
-  { title: 'Search engine optimization', color: '#636363ff' },
-  { title: 'Pay-per-click advertising', color: '#636363ff' },
-  { title: 'Social Media Marketing', color: '#636363ff' },
-  { title: 'Email Marketing', color: '#636363ff' },
-  { title: 'Content Creation', color: '#636363ff' },
-  { title: 'Analytics and Tracking', color: '#636363ff' },
+  { 
+    title: 'Mood Tracking & Analytics', 
+    description: 'Monitor your emotional patterns with intelligent insights',
+    icon: '📊',
+    color: '#4c9a73' 
+  },
+  { 
+    title: 'Personalized Challenges', 
+    description: 'AI-powered wellness challenges tailored to your needs',
+    icon: '🎯',
+    color: '#42f099' 
+  },
+  { 
+    title: 'Crisis Support', 
+    description: 'Immediate access to emergency mental health resources',
+    icon: '🆘',
+    color: '#f44336' 
+  },
+  { 
+    title: 'Calming Exercises', 
+    description: 'Guided meditation, breathing, and relaxation techniques',
+    icon: '🧘‍♂️',
+    color: '#9c27b0' 
+  },
+  { 
+    title: 'AI Wellness Assistant', 
+    description: '24/7 support and guidance for your mental health journey',
+    icon: '🤖',
+    color: '#2196f3' 
+  },
+  { 
+    title: 'Community & Resources', 
+    description: 'Connect with others and access professional mental health tools',
+    icon: '🤝',
+    color: '#ff9800' 
+  },
 ];
 
 const Features = () => (
   <section id="features" className="features">
-    <h2>What We Offer</h2>
+    <h2>Comprehensive Mental Wellness Tools</h2>
+    <p className="features-subtitle">Everything you need to nurture your mental health in one place</p>
     <div className="feature-grid">
       {featuresData.map((item, index) => (
         <div
           key={index}
           className="feature-card"
-          style={{ backgroundColor: item.color }}
+          style={{ borderLeft: `4px solid ${item.color}` }}
         >
+          <div className="feature-icon">{item.icon}</div>
           <h3>{item.title}</h3>
-          <p>Learn more →</p>
+          <p>{item.description}</p>
+          <div className="feature-arrow">→</div>
         </div>
       ))}
     </div>
@@ -195,17 +274,27 @@ const Features = () => (
 const FAQS = () => {
   const faqs = [
     {
-      q: 'What is this platform for?',
-      a: 'To bootstrap hackathon-ready projects with clean UI.',
+      q: 'How does MoodApp help with mental health?',
+      a: 'MoodApp provides comprehensive tools including mood tracking, personalized challenges, crisis support, and AI-powered guidance to support your mental wellness journey.',
     },
-    { q: 'Can I use it for production?', a: 'Yes, just customize and scale it up.' },
-    { q: 'Is dark mode supported?', a: 'Absolutely, with smooth toggle.' },
-    { q: 'Can I contribute?', a: 'Yes! We love open source.' },
+    { 
+      q: 'Is my mental health data secure?', 
+      a: 'Absolutely. We use enterprise-grade security and your data is completely private and encrypted. We never share your personal information.' 
+    },
+    { 
+      q: 'What if I need immediate crisis support?', 
+      a: 'Our crisis support page provides immediate access to emergency resources, crisis hotlines, and professional help when you need it most.' 
+    },
+    { 
+      q: 'Can I use MoodApp alongside therapy?', 
+      a: 'Yes! MoodApp is designed to complement professional therapy and can be used as a supportive tool in your overall mental health care plan.' 
+    },
   ];
   const [openIndex, setOpenIndex] = useState(null);
   return (
     <section id="faqs" className="faqs">
       <h2>Frequently Asked Questions</h2>
+      <p className="faqs-subtitle">Everything you need to know about MoodApp</p>
       {faqs.map((faq, i) => (
         <div
           key={i}
@@ -224,23 +313,58 @@ const FAQS = () => {
 const About = () => (
   <section id="about" className="about">
     <div className="about-left">
-      <h2>About the Project</h2>
+      <h2>About MoodApp</h2>
       <p>
-        This is a frontend boilerplate designed to supercharge your hackathon
-        workflow. Built with simplicity, performance, and dark/light theme
-        support in mind.
+        MoodApp is a comprehensive mental health platform designed to support your wellness journey. 
+        We combine cutting-edge technology with evidence-based mental health practices to provide 
+        personalized support when you need it most.
       </p>
       <p>
-        Project Guide: <strong>Prof. Rakesh Mehta</strong>
+        Our mission is to make mental health support accessible, effective, and stigma-free for everyone.
       </p>
+      <div className="about-features">
+        <div className="about-feature">
+          <span className="about-icon">🔒</span>
+          <span>Privacy First</span>
+        </div>
+        <div className="about-feature">
+          <span className="about-icon">🧠</span>
+          <span>Science-Based</span>
+        </div>
+        <div className="about-feature">
+          <span className="about-icon">💚</span>
+          <span>Always Supportive</span>
+        </div>
+      </div>
     </div>
     <div className="about-right">
-      <h3>Team Members</h3>
+      <h3>Why Choose MoodApp?</h3>
       <ul>
-        <li>Spider — Frontend Developer</li>
-        <li>John Doe — Backend Developer</li>
-        <li>Jane Smith — UI/UX Designer</li>
+        <li>🎯 Personalized wellness challenges</li>
+        <li>📱 Mobile-first design</li>
+        <li>🤖 AI-powered insights</li>
+        <li>🆘 Crisis support resources</li>
+        <li>🧘‍♀️ Guided mindfulness exercises</li>
+        <li>📊 Progress tracking & analytics</li>
       </ul>
+    </div>
+  </section>
+);
+
+// CTA Section
+const CTASection = () => (
+  <section className="cta-section">
+    <div className="cta-content">
+      <h2>Ready to Start Your Wellness Journey?</h2>
+      <p>Join thousands of users who are already improving their mental health with MoodApp</p>
+      <div className="cta-buttons">
+        <Link to="/register">
+          <button className="cta-btn-large">Get Started Free</button>
+        </Link>
+        <Link to="/login">
+          <button className="secondary-btn-large">Sign In</button>
+        </Link>
+      </div>
     </div>
   </section>
 );
@@ -262,8 +386,9 @@ const LandingPage = () => {
       <Features />
       <FAQS />
       <About />
+      <CTASection />
       <Footer />
-      <AIChatbotWidget />
+      {/* Chatbot is mounted globally in App.js */}
     </ThemeContext.Provider>
   );
 };

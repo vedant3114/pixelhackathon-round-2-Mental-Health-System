@@ -9,6 +9,7 @@ import Dashboard from './components/Dashboard';
 import AIChatbotWidget from './components/AIChatbotWidget';
 import CrisisSupportPage from './components/CrisisSupportPage';
 import CalmingExercisesPage from './components/CalmingExercisesPage';
+import AssistantOnboarding from './components/AssistantOnboarding';
 
 function App() {
   return (
@@ -18,11 +19,12 @@ function App() {
         <Route path="/login" element={<LoginForm />} />
         <Route path="/register" element={<RegisterForm />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/assistant" element={<AssistantOnboarding />} />
         <Route path="/crisis-support" element={<CrisisSupportPage />} />
         <Route path="/calming-exercises" element={<CalmingExercisesPage />} />
         <Route path="/playlists" element={<PlaylistPage />} />
-        <Route path="/" element={< AIChatbotWidget/>} />
       </Routes>
+      <AIChatbotWidget />
     </Router>
   );
 }

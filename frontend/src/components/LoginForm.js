@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase/config';
+import { auth, googleProvider, db } from '../firebase/config';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,12 +19,29 @@ const LoginForm = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const token = await userCredential.user.getIdToken();
 
+      // Ensure user doc exists / update last login
+      const user = userCredential.user;
+      const uid = user.uid;
+      const userDocRef = doc(db, 'users', uid);
+      await setDoc(
+        userDocRef,
+        {
+          userid: uid,
+          username: user.displayName || '',
+          phonenumber: '',
+          email: user.email || '',
+          lastLoginAt: new Date(),
+        },
+        { merge: true }
+      );
+
       const res = await axios.post('http://localhost:5000/api/auth/verify', {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       setMsg(`✅ Login successful! Welcome ${res.data.user.email}`);
-      navigate('/');
+      // First time or returning users go to assistant onboarding
+      navigate('/assistant');
     } catch (err) {
       setMsg(`❌ ${err.message}`);
     }
@@ -35,12 +53,30 @@ const LoginForm = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const token = await result.user.getIdToken();
 
+      // Create or update user in Firestore
+      const user = result.user;
+      const uid = user.uid;
+      const userDocRef = doc(db, 'users', uid);
+      const existingSnap = await getDoc(userDocRef);
+      const baseData = {
+        userid: uid,
+        username: user.displayName || '',
+        phonenumber: '',
+        email: user.email || '',
+      };
+      if (!existingSnap.exists()) {
+        await setDoc(userDocRef, { ...baseData, createdAt: new Date(), lastLoginAt: new Date() });
+      } else {
+        await setDoc(userDocRef, { ...baseData, lastLoginAt: new Date() }, { merge: true });
+      }
+
       const res = await axios.post('http://localhost:5000/api/auth/verify', {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       setMsg(`✅ Google Login successful! Welcome ${res.data.user.email}`);
-      navigate('/');
+      // Direct to assistant onboarding for PHQ flow
+      navigate('/assistant');
     } catch (err) {
       setMsg(`❌ ${err.message}`);
     }

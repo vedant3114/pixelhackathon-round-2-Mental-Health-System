@@ -34,6 +34,8 @@ import {
   Rating,
   List,
   ListItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { styled } from '@mui/material/styles';
@@ -602,6 +604,146 @@ const Phq9Dialog = ({ open, onClose, onSubmit }) => {
   );
 };
 
+// Notification Modal Component
+const NotificationModal = ({ open, onClose, notifications, onMarkAsSeen }) => {
+  const handleNotificationClick = (notificationId) => {
+    onMarkAsSeen(notificationId);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: '16px',
+          maxHeight: '70vh'
+        }
+      }}
+    >
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid #e0e0e0',
+          pb: 2
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <SvgIcon sx={{ color: '#4c9a73' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
+              <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
+            </svg>
+          </SvgIcon>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Notifications ({notifications.length})
+          </Typography>
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
+            <path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"></path>
+          </svg>
+        </IconButton>
+      </DialogTitle>
+      
+      <DialogContent sx={{ p: 0 }}>
+        {notifications.length === 0 ? (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <SvgIcon sx={{ fontSize: 48, color: '#ccc', mb: 2 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="48px" height="48px" fill="currentColor" viewBox="0 0 256 256">
+                <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
+              </svg>
+            </SvgIcon>
+            <Typography variant="body1" color="text.secondary">
+              No notifications yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              You're all caught up!
+            </Typography>
+          </Box>
+        ) : (
+          <List sx={{ p: 0 }}>
+            {notifications.map((notification, index) => (
+              <ListItem
+                key={notification.id || index}
+                onClick={() => handleNotificationClick(notification.id || index)}
+                sx={{
+                  borderBottom: index < notifications.length - 1 ? '1px solid #f0f0f0' : 'none',
+                  py: 2,
+                  px: 3,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    bgcolor: '#f5f5f5'
+                  },
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <Box
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      bgcolor: notification.type === 'mood' ? '#4c9a73' : 
+                               notification.type === 'challenge' ? '#ff9800' : 
+                               notification.type === 'points' ? '#4caf50' : '#2196f3',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <SvgIcon sx={{ color: 'white', fontSize: 16 }}>
+                      {notification.type === 'mood' ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16px" height="16px" fill="currentColor" viewBox="0 0 256 256">
+                          <path d="M128,24A104,104,0,1,0,232,128,104.15,104.15,0,0,0,128,24ZM80,108a24,24,0,1,1,24,24A24,24,0,0,1,80,108Zm80,0a24,24,0,1,1-24,24A24,24,0,0,1,160,108Z"></path>
+                        </svg>
+                      ) : notification.type === 'challenge' ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16px" height="16px" fill="currentColor" viewBox="0 0 256 256">
+                          <path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"></path>
+                        </svg>
+                      ) : notification.type === 'points' ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16px" height="16px" fill="currentColor" viewBox="0 0 256 256">
+                          <path d="M128,24A104,104,0,1,0,232,128,104.15,104.15,0,0,0,128,24ZM80,108a24,24,0,1,1,24,24A24,24,0,0,1,80,108Zm80,0a24,24,0,1,1-24,24A24,24,0,0,1,160,108Z"></path>
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16px" height="16px" fill="currentColor" viewBox="0 0 256 256">
+                          <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
+                        </svg>
+                      )}
+                    </SvgIcon>
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.5 }}>
+                      {notification.title || 'Notification'}
+                    </Typography>
+                  }
+                  secondary={
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        {notification.message || notification.description || 'You have a new notification'}
+                      </Typography>
+                      {notification.timestamp && (
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(notification.timestamp).toLocaleString()}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const MoodDashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -620,11 +762,15 @@ const MoodDashboard = () => {
   const [phq9Data, setPhq9Data] = useState(null);
   const [personalizedChallenges, setPersonalizedChallenges] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [seenNotifications, setSeenNotifications] = useState(new Set());
   const [points, setPoints] = useState(0);
   const navigate = useNavigate();
   const [activeTimers, setActiveTimers] = useState({});
   const [completedChallenges, setCompletedChallenges] = useState([]);
   const completedChallengesRef = useRef(completedChallenges);
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
+  const [challengeRefreshMessage, setChallengeRefreshMessage] = useState('');
+  const [allChallengesCompleted, setAllChallengesCompleted] = useState(false);
 
   const startTimer = (challengeId, duration) => {
     setActiveTimers(prev => {
@@ -800,6 +946,34 @@ const MoodDashboard = () => {
               setPoints(snap.data().points);
             }
           }).catch(() => {});
+
+          // Replenish challenges if we're running low
+          const currentChallenges = personalizedChallenges.filter(challenge => 
+            !completedChallenges.includes(challenge.title) && 
+            !newCompletedChallenges.includes(challenge.title)
+          );
+          
+          if (currentChallenges.length < 2) {
+            const newChallenges = replenishChallenges();
+            setPersonalizedChallenges(newChallenges);
+            
+            // Save new challenges to Firestore
+            updateDoc(userDocRef, {
+              personalizedChallenges: newChallenges
+            }).catch(() => {});
+          }
+
+          // Show completion notification
+          setChallengeRefreshMessage(`🎉 Challenge completed! +${pointsToAdd} points earned. New challenges loaded!`);
+          setTimeout(() => setChallengeRefreshMessage(''), 4000);
+
+          // Add notification for challenge completion
+          addNotification({
+            type: 'points',
+            title: 'Challenge Completed! 🎉',
+            message: `Congratulations! You've completed a challenge and earned ${pointsToAdd} points. Keep up the great work!`,
+            description: `Challenge completed successfully. +${pointsToAdd} points added to your account.`
+          });
         }
       }
     }, 1000);
@@ -829,11 +1003,23 @@ const MoodDashboard = () => {
         const userDocRef = await doc(db, 'users', user.uid);
         const userSnap = await getDoc(userDocRef);
 
-        if (userSnap.exists() && userSnap.data().moodAlerts) {
-          setNotifications(userSnap.data().moodAlerts);
-        }
-        if (userSnap.exists() && typeof userSnap.data().points === 'number') {
-          setPoints(userSnap.data().points);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          
+          // Load notifications
+          if (userData.notifications) {
+            setNotifications(userData.notifications);
+          }
+          
+          // Load seen notifications
+          if (userData.seenNotifications) {
+            setSeenNotifications(new Set(userData.seenNotifications));
+          }
+          
+          // Load points
+          if (typeof userData.points === 'number') {
+            setPoints(userData.points);
+          }
         }
       } catch (error) {
         console.error('Error loading notifications:', error);
@@ -847,54 +1033,36 @@ const MoodDashboard = () => {
   useEffect(() => {
     if (!phq9Data) return;
 
-    // Challenge logic based on PHQ-9 score
+    // Get random challenges from the pool based on PHQ-9 score
     let personalized = [];
-
+    
     if (phq9Data.score >= 15) {
-      personalized = [
-        {
-          title: "Professional Support",
-          description: "Connect with a mental health professional for guidance",
-          type: "professional",
-          severity: "high"
-        },
-        {
-          title: "Daily Check-ins",
-          description: "Set reminders to check in with yourself 3 times a day",
-          type: "behavior",
-          severity: "high"
-        }
-      ];
+      // High severity - prioritize high and medium severity challenges
+      const highSeverityChallenges = challengePool.filter(c => c.severity === 'high');
+      const mediumSeverityChallenges = challengePool.filter(c => c.severity === 'medium');
+      
+      // Get 2 high severity challenges if available, otherwise mix with medium
+      if (highSeverityChallenges.length >= 2) {
+        personalized = getRandomChallenges(2).filter(c => c.severity === 'high');
+      } else {
+        personalized = [...highSeverityChallenges, ...getRandomChallenges(2 - highSeverityChallenges.length).filter(c => c.severity === 'medium')];
+      }
     } else if (phq9Data.score >= 10) {
-      personalized = [
-        {
-          title: "Mindfulness Practice",
-          description: "10-minute guided meditation every morning",
-          type: "mindfulness",
-          severity: "medium"
-        },
-        {
-          title: "Social Connection",
-          description: "Reach out to a friend or family member daily",
-          type: "social",
-          severity: "medium"
-        }
-      ];
+      // Medium severity - mix of medium and low severity challenges
+      const mediumSeverityChallenges = challengePool.filter(c => c.severity === 'medium');
+      const lowSeverityChallenges = challengePool.filter(c => c.severity === 'low');
+      
+      personalized = [...getRandomChallenges(1).filter(c => c.severity === 'medium'), 
+                     ...getRandomChallenges(1).filter(c => c.severity === 'low')];
     } else if (phq9Data.score >= 5) {
-      personalized = [
-        {
-          title: "Gratitude Journal",
-          description: "Write down 3 things you're grateful for each day",
-          type: "gratitude",
-          severity: "low"
-        },
-        {
-          title: "Physical Activity",
-          description: "20-minute walk or exercise every day",
-          type: "physical",
-          severity: "low"
-        }
-      ];
+      // Low severity - primarily low severity challenges
+      personalized = getRandomChallenges(2).filter(c => c.severity === 'low');
+    }
+
+    // Ensure we always have at least 2 challenges
+    if (personalized.length < 2) {
+      const remaining = getRandomChallenges(2 - personalized.length);
+      personalized = [...personalized, ...remaining];
     }
 
     setPersonalizedChallenges(personalized);
@@ -923,14 +1091,17 @@ const MoodDashboard = () => {
 
         if (userSnap.exists()) {
           const data = userSnap.data();
-          if (data.personalizedChallenges) {
+          if (data.personalizedChallenges && data.personalizedChallenges.length > 0) {
             setPersonalizedChallenges(data.personalizedChallenges);
           } else {
-            // Seed a couple of default personalized challenges for first-time users
-            setPersonalizedChallenges([
-              { title: 'Mindful Breathing', description: '5 minutes of deep breathing', type: 'breathing', severity: 'low', duration: 1 },
-              { title: 'Short Walk', description: 'Take a 10-minute walk', type: 'physical', severity: 'low', duration: 1 },
-            ]);
+            // Get random challenges from the pool for first-time users
+            const randomChallenges = getRandomChallenges(3);
+            setPersonalizedChallenges(randomChallenges);
+            
+            // Save to Firestore
+            await updateDoc(userDocRef, {
+              personalizedChallenges: randomChallenges
+            });
           }
           if (Array.isArray(data.completedChallengeIds)) {
             setCompletedChallenges(data.completedChallengeIds);
@@ -938,11 +1109,20 @@ const MoodDashboard = () => {
         }
       } catch (error) {
         console.error('Error loading personalized challenges:', error);
+        // Fallback to random challenges if there's an error
+        const randomChallenges = getRandomChallenges(3);
+        setPersonalizedChallenges(randomChallenges);
       }
     };
 
     loadPersonalizedChallenges();
   }, [user]);
+
+  // Effect to monitor challenge completion status
+  useEffect(() => {
+    const remainingChallenges = challengePool.filter(c => !completedChallenges.includes(c.title));
+    setAllChallengesCompleted(remainingChallenges.length === 0);
+  }, [completedChallenges]);
 
   // Mobile menu handlers
   const handleMobileMenuOpen = (event) => {
@@ -960,6 +1140,15 @@ const MoodDashboard = () => {
 
   const handleUserMenuClose = () => {
     setUserMenuAnchorEl(null);
+  };
+
+  // Notification modal handlers
+  const handleNotificationModalOpen = () => {
+    setNotificationModalOpen(true);
+  };
+
+  const handleNotificationModalClose = () => {
+    setNotificationModalOpen(false);
   };
 
   // Navigation handler
@@ -1162,6 +1351,105 @@ const MoodDashboard = () => {
     Resilient: { color: '#3a9b7a', icon: '💪' },
   };
 
+  // Pool of 10 challenges that will be randomly selected
+  const challengePool = [
+    {
+      title: "Mindful Breathing",
+      description: "5 minutes of deep breathing exercises",
+      type: "breathing",
+      severity: "low",
+      duration: 1
+    },
+    {
+      title: "Short Walk",
+      description: "Take a 10-minute walk outside",
+      type: "physical",
+      severity: "low",
+      duration: 1
+    },
+    {
+      title: "Gratitude Practice",
+      description: "Write down 3 things you're grateful for",
+      type: "gratitude",
+      severity: "low",
+      duration: 1
+    },
+    {
+      title: "Progressive Relaxation",
+      description: "10-minute muscle relaxation exercise",
+      type: "relaxation",
+      severity: "low",
+      duration: 1
+    },
+    {
+      title: "Mindfulness Meditation",
+      description: "15-minute guided meditation session",
+      type: "meditation",
+      severity: "medium",
+      duration: 2
+    },
+    {
+      title: "Social Connection",
+      description: "Reach out to a friend or family member",
+      type: "social",
+      severity: "medium",
+      duration: 1
+    },
+    {
+      title: "Creative Expression",
+      description: "Draw, paint, or write for 20 minutes",
+      type: "creative",
+      severity: "medium",
+      duration: 2
+    },
+    {
+      title: "Physical Exercise",
+      description: "30-minute workout or yoga session",
+      type: "physical",
+      severity: "medium",
+      duration: 3
+    },
+    {
+      title: "Professional Support",
+      description: "Schedule a mental health consultation",
+      type: "professional",
+      severity: "high",
+      duration: 1
+    },
+    {
+      title: "Crisis Safety Plan",
+      description: "Create a safety plan for difficult moments",
+      type: "safety",
+      severity: "high",
+      duration: 1
+    }
+  ];
+
+  // Function to get random challenges from the pool
+  const getRandomChallenges = (count = 3) => {
+    const shuffled = [...challengePool].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+
+  // Function to replenish challenges when needed
+  const replenishChallenges = () => {
+    const availableChallenges = challengePool.filter(challenge => 
+      !completedChallenges.includes(challenge.title)
+    );
+    
+    if (availableChallenges.length < 3) {
+      // Reset completed challenges if we're running low
+      setCompletedChallenges([]);
+      setChallengeRefreshMessage('Challenges refreshed! New challenges are available.');
+      setTimeout(() => setChallengeRefreshMessage(''), 3000);
+      return getRandomChallenges(3);
+    }
+    
+    setChallengeRefreshMessage('New challenges loaded!');
+    setTimeout(() => setChallengeRefreshMessage(''), 3000);
+    return getRandomChallenges(3);
+  };
+
   // Show loading state while checking authentication
   if (loading) {
     return (
@@ -1178,6 +1466,43 @@ const MoodDashboard = () => {
     navigate('/login');
     return null;
   }
+
+  const addNotification = (notification) => {
+    const newNotification = {
+      ...notification,
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString()
+    };
+    
+    setNotifications(prev => [newNotification, ...prev]);
+    
+    // Save to Firestore
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      updateDoc(userDocRef, {
+        notifications: arrayUnion(newNotification)
+      }).catch(error => {
+        console.error('Error saving notification:', error);
+      });
+    }
+  };
+
+  const markNotificationAsSeen = (notificationId) => {
+    setSeenNotifications(prev => new Set([...prev, notificationId]));
+    
+    // Remove from notifications
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    
+    // Update Firestore
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      updateDoc(userDocRef, {
+        seenNotifications: arrayUnion(notificationId)
+      }).catch(error => {
+        console.error('Error updating seen notifications:', error);
+      });
+    }
+  };
 
   return (
     <Root>
@@ -1259,20 +1584,56 @@ const MoodDashboard = () => {
             </MoodEntryButton>
 
             <Tooltip title="Notifications">
-              <Button
-                variant="outlined"
-                startIcon={
-                  <SvgIcon fontSize="small">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
-                      <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
-                    </svg>
-                  </SvgIcon>
-                }
-                sx={{ borderRadius: 2 }}
-              >
-
-              </Button>
+              <Box sx={{ position: 'relative' }}>
+                <Button
+                  variant="outlined"
+                  onClick={handleNotificationModalOpen}
+                  startIcon={
+                    <SvgIcon fontSize="small">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
+                        <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
+                      </svg>
+                    </SvgIcon>
+                  }
+                  sx={{ borderRadius: 2 }}
+                >
+                  Notifications
+                </Button>
+                {notifications.length > 0 && (
+                  <Chip
+                    label={notifications.length}
+                    size="small"
+                    sx={{
+                      position: 'absolute',
+                      top: -8,
+                      right: -8,
+                      minWidth: 20,
+                      height: 20,
+                      fontSize: '0.75rem',
+                      bgcolor: '#f44336',
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}
+                  />
+                )}
+              </Box>
             </Tooltip>
+          </Box>
+
+          {/* Mobile Points Display */}
+          <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', mr: 2 }}>
+            <Chip
+              icon={
+                <SvgIcon fontSize="small">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zm0 7l-10 5 10 5 10-5-10-5zm-10 8l10 5 10-5v2l-10 5-10-5v-2z"/>
+                  </svg>
+                </SvgIcon>
+              }
+              label={`${points} pts`}
+              size="small"
+              sx={{ bgcolor: '#e7f3ed', color: '#0d1b14', fontWeight: 'bold' }}
+            />
           </Box>
 
           {/* Mobile menu button - Hidden on desktop */}
@@ -1304,6 +1665,39 @@ const MoodDashboard = () => {
             >
               Home
             </Button>
+
+            {/* Mobile Notification Button */}
+            <Box sx={{ position: 'relative' }}>
+              <IconButton
+                color="inherit"
+                onClick={handleNotificationModalOpen}
+                size="small"
+                sx={{ mr: 1 }}
+              >
+                <SvgIcon fontSize="small">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
+                    <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
+                  </svg>
+                </SvgIcon>
+              </IconButton>
+              {notifications.length > 0 && (
+                <Chip
+                  label={notifications.length}
+                  size="small"
+                  sx={{
+                    position: 'absolute',
+                    top: -8,
+                    right: -8,
+                    minWidth: 16,
+                    height: 16,
+                    fontSize: '0.7rem',
+                    bgcolor: '#f44336',
+                    color: 'white',
+                    fontWeight: 'bold'
+                  }}
+                />
+              )}
+            </Box>
 
             <IconButton
               size="large"
@@ -1357,10 +1751,50 @@ const MoodDashboard = () => {
             onClose={handleMobileMenuClose}
             sx={{ display: { xs: 'block', sm: 'none' } }}
           >
+            {/* Mobile Points Display */}
+            <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Points
+                </Typography>
+                <Chip
+                  icon={
+                    <SvgIcon fontSize="small">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zm0 7l-10 5 10 5 10-5-10-5zm-10 8l10 5 10-5v2l-10 5-10-5v-2z"/>
+                      </svg>
+                    </SvgIcon>
+                  }
+                  label={`${points} pts`}
+                  size="small"
+                  sx={{ bgcolor: '#e7f3ed', color: '#0d1b14', fontWeight: 'bold' }}
+                />
+              </Box>
+            </Box>
+            
             <MenuItem onClick={() => { handleNavigate('/'); handleMobileMenuClose(); }}>Home</MenuItem>
             <MenuItem onClick={handleMobileMenuClose}>Journal</MenuItem>
             <MenuItem onClick={handleMobileMenuClose}>Challenges</MenuItem>
             <MenuItem onClick={handleMobileMenuClose}>Resources</MenuItem>
+            <MenuItem onClick={() => { handleNotificationModalOpen(); handleMobileMenuClose(); }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <span>Notifications</span>
+                {notifications.length > 0 && (
+                  <Chip
+                    label={notifications.length}
+                    size="small"
+                    sx={{
+                      bgcolor: '#f44336',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      minWidth: 20,
+                      height: 20,
+                      fontSize: '0.75rem'
+                    }}
+                  />
+                )}
+              </Box>
+            </MenuItem>
           </Menu>
 
           {/* User Menu */}
@@ -1410,6 +1844,14 @@ const MoodDashboard = () => {
         open={phq9DialogOpen}
         onClose={() => setPhq9DialogOpen(false)}
         onSubmit={handlePhq9Submit}
+      />
+
+      {/* Notification Modal */}
+      <NotificationModal
+        open={notificationModalOpen}
+        onClose={handleNotificationModalClose}
+        notifications={notifications}
+        onMarkAsSeen={markNotificationAsSeen}
       />
 
       <Container maxWidth="xl" sx={{ mt: { xs: 2, sm: 3, md: 4 } }}>
@@ -1559,9 +2001,74 @@ const MoodDashboard = () => {
             transition={{ duration: 0.5, delay: 0.3 }}
             key={completedChallenges.length}
           >
-            <Typography variant={{ xs: 'h6', sm: 'h5', md: 'h5' }} component="h2" color="#0d1b14" fontWeight="bold" gutterBottom>
-              Active Challenges
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant={{ xs: 'h6', sm: 'h5', md: 'h5' }} component="h2" color="#0d1b14" fontWeight="bold">
+                Active Challenges
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  const newChallenges = replenishChallenges();
+                  setPersonalizedChallenges(newChallenges);
+                  // Save to Firestore
+                  if (user) {
+                    const userDocRef = doc(db, 'users', user.uid);
+                    updateDoc(userDocRef, {
+                      personalizedChallenges: newChallenges
+                    }).catch(() => {});
+                  }
+                  
+                  // Add notification for new challenges
+                  addNotification({
+                    type: 'challenge',
+                    title: 'New Challenges Available! 🎯',
+                    message: 'Fresh challenges have been loaded for you. Ready to take on something new?',
+                    description: 'New personalized challenges are now available based on your current needs.'
+                  });
+                }}
+                startIcon={
+                  <SvgIcon fontSize="small">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                      <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                    </svg>
+                  </SvgIcon>
+                }
+                sx={{
+                  borderRadius: '8px',
+                  borderColor: '#4c9a73',
+                  color: '#4c9a73',
+                  '&:hover': {
+                    borderColor: '#3a9b7a',
+                    bgcolor: '#f0f8f5'
+                  }
+                }}
+              >
+                Refresh Challenges
+              </Button>
+            </Box>
+            {challengeRefreshMessage && (
+              <Box sx={{ 
+                mb: 2, 
+                p: 1.5, 
+                bgcolor: '#e7f3ed', 
+                borderRadius: 1, 
+                border: '1px solid #4c9a73',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}>
+                <SvgIcon fontSize="small" sx={{ color: '#4c9a73' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M9.05.435c-.58-.58-1.52-.58-2.1 0L.436 6.95c-.58.58-.58 1.519 0 2.098l6.516 6.516c.58.58 1.519.58 2.098 0l6.516-6.516c.58-.58.58-1.519 0-2.098L9.05.435zM8 .989c.127 0 .253.049.35.145l2.35 2.35a.5.5 0 0 1-.7.7L8.5 2.207 6.15 4.557a.5.5 0 0 1-.7-.7l2.35-2.35A.5.5 0 0 1 8 .989z"/>
+                  </svg>
+                </SvgIcon>
+                <Typography variant="body2" color="#0d1b14" sx={{ fontWeight: 500 }}>
+                  {challengeRefreshMessage}
+                </Typography>
+              </Box>
+            )}
 
             <Grid container spacing={{ xs: 2, sm: 3 }}>
               {personalizedChallenges.length > 0 ? (
@@ -1704,6 +2211,56 @@ const MoodDashboard = () => {
                 ))
               )}
             </Grid>
+            
+            {/* Challenge Pool Info */}
+            <Box sx={{ mt: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: 2, border: '1px solid #e9ecef' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                💡 <strong>{challengePool.length}</strong> challenges available • 
+                <strong> {challengePool.filter(c => !completedChallenges.includes(c.title)).length}</strong> challenges remaining
+              </Typography>
+            </Box>
+            
+            {/* All Challenges Completed Message */}
+            {challengePool.filter(c => !completedChallenges.includes(c.title)).length === 0 && (
+              <Box sx={{ mt: 3, p: 3, bgcolor: '#fff3cd', borderRadius: 2, border: '1px solid #ffeaa7', textAlign: 'center' }}>
+                <Typography variant="h6" color="#856404" sx={{ mb: 1 }}>
+                  🎉 Congratulations!
+                </Typography>
+                <Typography variant="body1" color="#856404" sx={{ mb: 2 }}>
+                  You've completed all available challenges! Click "Refresh Challenges" to get new ones.
+                </Typography>
+                <Button
+                  variant="contained"
+                  onClick={() => {
+                    setCompletedChallenges([]);
+                    const newChallenges = getRandomChallenges(3);
+                    setPersonalizedChallenges(newChallenges);
+                    if (user) {
+                      const userDocRef = doc(db, 'users', user.uid);
+                      updateDoc(userDocRef, {
+                        personalizedChallenges: newChallenges,
+                        completedChallengeIds: []
+                      }).catch(() => {});
+                    }
+                    
+                    // Add notification for challenge reset
+                    addNotification({
+                      type: 'challenge',
+                      title: 'Challenges Reset! 🔄',
+                      message: 'All challenges have been reset and new ones are now available. Start fresh!',
+                      description: 'Challenge progress has been reset and new personalized challenges are ready.'
+                    });
+                  }}
+                  sx={{
+                    bgcolor: '#ffc107',
+                    color: '#856404',
+                    '&:hover': { bgcolor: '#e0a800' }
+                  }}
+                >
+                  Reset & Get New Challenges
+                </Button>
+              </Box>
+            )}
           </motion.div>
         </Box>
 
@@ -1785,56 +2342,7 @@ const MoodDashboard = () => {
         </Box>
 
         {/* Notifications Section */}
-        {notifications.length > 0 && (
-          <Box sx={{ mt: { xs: 4, sm: 6, md: 8 }, mb: { xs: 2, sm: 4, md: 6 } }}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
-              <Typography variant={{ xs: 'h6', sm: 'h5', md: 'h5' }} component="h2" color="#0d1b14" fontWeight="bold" gutterBottom>
-                Notifications
-              </Typography>
-
-              <List>
-                {notifications.map((notification, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                  >
-                    <ListItem>
-                      <Box
-                        sx={{
-                          borderRadius: 8,
-                          backgroundColor: '#e7f3ed',
-                          p: 2,
-                          width: '100%',
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          color="#0d1b14"
-                          sx={{ mb: 1 }}
-                        >
-                          {notification.message}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="#4c9a73"
-                        >
-                          {new Date(notification.date).toLocaleDateString()}
-                        </Typography>
-                      </Box>
-                    </ListItem>
-                  </motion.div>
-                ))}
-              </List>
-            </motion.div>
-          </Box>
-        )}
-
+       
         {/* Custom spacing for mobile devices */}
         <Box sx={{ height: { xs: 80, sm: 0 } }} />
       </Container>
