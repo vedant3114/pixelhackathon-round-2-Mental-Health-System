@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -56,6 +56,8 @@ import {
   onSnapshot,
   addDoc,
   updateDoc,
+  arrayUnion,
+  increment,
 } from 'firebase/firestore';
 
 // Styled components
@@ -67,8 +69,8 @@ const Root = styled('div')(({ theme }) => ({
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   borderBottom: '1px solid #e7f3ed',
-  background: '#f8fcfa',
-  boxShadow: 'none',
+  background: '#ffffff',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
 }));
 
 const StyledCard = styled(Paper)(({ theme }) => ({
@@ -618,7 +620,36 @@ const MoodDashboard = () => {
   const [phq9Data, setPhq9Data] = useState(null);
   const [personalizedChallenges, setPersonalizedChallenges] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [points, setPoints] = useState(0);
   const navigate = useNavigate();
+  const [activeTimers, setActiveTimers] = useState({});
+  const [completedChallenges, setCompletedChallenges] = useState([]);
+  const completedChallengesRef = useRef(completedChallenges);
+
+  const startTimer = (challengeId, duration) => {
+    setActiveTimers(prev => {
+      const updatedTimers = { ...prev };
+      delete updatedTimers[challengeId];
+      return updatedTimers;
+    });
+    setCompletedChallenges(prev => prev.filter(id => id !== challengeId));
+    const timeRemaining = duration * 60;
+    const newTimer = {
+      startTime: Date.now(),
+      endTime: Date.now() + timeRemaining * 1000,
+      timeRemaining,
+    };
+    setActiveTimers(prev => ({
+      ...prev,
+      [challengeId]: newTimer,
+    }));
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
   // Firebase auth state observer
   useEffect(() => {
@@ -671,7 +702,8 @@ const MoodDashboard = () => {
 
   // Calculate average mood and track mood patterns
   useEffect(() => {
-    // Calculate average mood (always update)
+    if (!filteredMoodEntries || filteredMoodEntries.length < 7) return;
+
     if (filteredMoodEntries.length > 0) {
       const totalMood = filteredMoodEntries.reduce((sum, entry) => sum + (entry.mood || 0), 0);
       const avg = totalMood / filteredMoodEntries.length;
@@ -680,7 +712,6 @@ const MoodDashboard = () => {
       setAverageMood(0);
     }
 
-    // Check for consecutive days with low mood
     let consecutiveLowDays = 0;
     const today = new Date();
 
@@ -703,29 +734,90 @@ const MoodDashboard = () => {
 
     setLowMoodDays(consecutiveLowDays);
 
-    // Trigger PHQ-9 if 3+ consecutive days of low mood
     if (consecutiveLowDays >= 3 && !phq9Data) {
       setPhq9DialogOpen(true);
     }
   }, [filteredMoodEntries, phq9Data]);
 
+  // Update ref when completedChallenges changes
+  useEffect(() => {
+    completedChallengesRef.current = completedChallenges;
+  }, [completedChallenges]);
+
+  // Timer tick effect
+  useEffect(() => {
+    const timerInterval = setInterval(() => {
+      const now = Date.now();
+      let activeTimersUpdated = false;
+      const newCompletedChallenges = [];
+
+      const updatedActiveTimers = { ...activeTimers };
+
+      Object.keys(updatedActiveTimers).forEach(challengeId => {
+        const timer = updatedActiveTimers[challengeId];
+
+        if (timer && now >= timer.endTime) {
+          newCompletedChallenges.push(challengeId);
+          delete updatedActiveTimers[challengeId];
+          activeTimersUpdated = true;
+        } else if (timer && now < timer.endTime) {
+          const timeRemaining = Math.floor((timer.endTime - now) / 1000);
+          if (timer.timeRemaining !== timeRemaining) {
+            updatedActiveTimers[challengeId] = {
+              ...timer,
+              timeRemaining,
+            };
+            activeTimersUpdated = true;
+          }
+        }
+      });
+
+      if (activeTimersUpdated) {
+        setActiveTimers(updatedActiveTimers);
+      }
+
+      if (newCompletedChallenges.length > 0) {
+        setCompletedChallenges(prev => {
+          const uniqueCompleted = [...prev];
+          newCompletedChallenges.forEach(id => {
+            if (!uniqueCompleted.includes(id)) uniqueCompleted.push(id);
+          });
+          return uniqueCompleted;
+        });
+
+        // Persist completion state and award points
+        if (user) {
+          const userDocRef = doc(db, 'users', user.uid);
+          const pointsToAdd = newCompletedChallenges.length * 10;
+          updateDoc(userDocRef, {
+            completedChallengeIds: arrayUnion(...newCompletedChallenges),
+            points: increment(pointsToAdd),
+          }).catch(() => {});
+
+          // Refresh points locally after update
+          getDoc(userDocRef).then(snap => {
+            if (snap.exists() && typeof snap.data().points === 'number') {
+              setPoints(snap.data().points);
+            }
+          }).catch(() => {});
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(timerInterval);
+  }, [activeTimers]);
+
 
 
   useEffect(() => {
-    console.log('filteredMoodEntries:', filteredMoodEntries);
-    console.log('averageMood being set to:', averageMood);
-
+    // Keep averageMood synced without verbose logging
     if (filteredMoodEntries.length > 0) {
-      const totalMood = filteredMoodEntries.reduce((sum, entry) => {
-        console.log('Entry mood:', entry.mood);
-        return sum + (entry.mood || 0);
-      }, 0);
+      const totalMood = filteredMoodEntries.reduce((sum, entry) => sum + (entry.mood || 0), 0);
       const avg = totalMood / filteredMoodEntries.length;
       setAverageMood(parseFloat(avg.toFixed(1)));
     } else {
       setAverageMood(0);
     }
-    // ... rest of the effect ...
   }, [filteredMoodEntries, phq9Data]);
 
   // Effect to load notifications
@@ -734,11 +826,14 @@ const MoodDashboard = () => {
 
     const getNotifications = async () => {
       try {
-        const userDoc = await doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userDoc);
+        const userDocRef = await doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userDocRef);
 
         if (userSnap.exists() && userSnap.data().moodAlerts) {
           setNotifications(userSnap.data().moodAlerts);
+        }
+        if (userSnap.exists() && typeof userSnap.data().points === 'number') {
+          setPoints(userSnap.data().points);
         }
       } catch (error) {
         console.error('Error loading notifications:', error);
@@ -823,11 +918,23 @@ const MoodDashboard = () => {
 
     const loadPersonalizedChallenges = async () => {
       try {
-        const userDoc = await doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userDoc);
+        const userDocRef = await doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userDocRef);
 
-        if (userSnap.exists() && userSnap.data().personalizedChallenges) {
-          setPersonalizedChallenges(userSnap.data().personalizedChallenges);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          if (data.personalizedChallenges) {
+            setPersonalizedChallenges(data.personalizedChallenges);
+          } else {
+            // Seed a couple of default personalized challenges for first-time users
+            setPersonalizedChallenges([
+              { title: 'Mindful Breathing', description: '5 minutes of deep breathing', type: 'breathing', severity: 'low', duration: 1 },
+              { title: 'Short Walk', description: 'Take a 10-minute walk', type: 'physical', severity: 'low', duration: 1 },
+            ]);
+          }
+          if (Array.isArray(data.completedChallengeIds)) {
+            setCompletedChallenges(data.completedChallengeIds);
+          }
         }
       } catch (error) {
         console.error('Error loading personalized challenges:', error);
@@ -1092,6 +1199,21 @@ const MoodDashboard = () => {
 
           <Box sx={{ flexGrow: 1 }} />
 
+          {/* Points Badge */}
+          <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', mr: 2 }}>
+            <Chip
+              icon={
+                <SvgIcon fontSize="small">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zm0 7l-10 5 10 5 10-5-10-5zm-10 8l10 5 10-5v2l-10 5-10-5v-2z"/>
+                  </svg>
+                </SvgIcon>
+              }
+              label={`${points} pts`}
+              sx={{ bgcolor: '#e7f3ed', color: '#0d1b14', fontWeight: 'bold' }}
+            />
+          </Box>
+
           {/* Desktop Navigation - Visible on desktop */}
           <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 1, flexDirection: 'row', alignItems: 'center' }}>
             <Button
@@ -1108,9 +1230,9 @@ const MoodDashboard = () => {
               Home
             </Button>
 
-            <Button color="inherit">Journal</Button>
-            <Button color="inherit">Challenges</Button>
-            <Button color="inherit">Resources</Button>
+            <Button color="inherit" onClick={() => handleNavigate('/journal')}>Journal</Button>
+            <Button color="inherit" onClick={() => handleNavigate('/challenges')}>Challenges</Button>
+            <Button color="inherit" onClick={() => handleNavigate('/resources')}>Resources</Button>
           </Box>
 
           {/* Mood Entry Button */}
@@ -1203,10 +1325,12 @@ const MoodDashboard = () => {
               sx={{ display: { xs: 'none', sm: 'flex' }, ml: 1 }}
             >
               <Avatar
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAv7_7qqBvfJLjDB9bg7LqHNoPjNdNtkp2KTveeOVuTOsi3CyqflEoLZBWtp9XqzXH2dZqAs6oDNndCDz53e5f0Ev-viYCd2zPirQe8wcfcRIzScLhlz-4kn86rN8VI8t2GQXTagYGYo2hd1ECa_eHFjJBGcak9KdvZcIsl0MP107l1l-VrMHI9RsKDbzyFu8aBgFFW3jaqn-Ve_QPnaMhmaGh05vdSHqx09YMEgnI4WvmI0sRfLRmrk0Rg-PJXekCOaripeaGr8HX"
-                alt={user.displayName || 'User'}
+                src={user?.photoURL || undefined}
+                alt={user?.displayName || user?.email || 'User'}
                 sx={{ width: 40, height: 40 }}
-              />
+              >
+                {!user?.photoURL && (user?.displayName?.[0] || user?.email?.[0] || 'U')}
+              </Avatar>
             </IconButton>
           </Tooltip>
 
@@ -1217,10 +1341,12 @@ const MoodDashboard = () => {
               sx={{ display: { xs: 'flex', sm: 'none' }, ml: 1, mr: 1 }}
             >
               <Avatar
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAv7_7qqBvfJLjDB9bg7LqHNoPjNdNtkp2KTveeOVuTOsi3CyqflEoLZBWtp9XqzXH2dZqAs6oDNndCDz53e5f0Ev-viYCd2zPirQe8wcfcRIzScLhlz-4kn86rN8VI8t2GQXTagYGYo2hd1ECa_eHFjJBGcak9KdvZcIsl0MP107l1l-VrMHI9RsKDbzyFu8aBgFFW3jaqn-Ve_QPnaMhmaGh05vdSHqx09YMEgnI4WvmI0sRfLRmrk0Rg-PJXekCOaripeaGr8HX"
-                alt={user.displayName || 'User'}
+                src={user?.photoURL || undefined}
+                alt={user?.displayName || user?.email || 'User'}
                 sx={{ width: 32, height: 32 }}
-              />
+              >
+                {!user?.photoURL && (user?.displayName?.[0] || user?.email?.[0] || 'U')}
+              </Avatar>
             </IconButton>
           </Tooltip>
 
@@ -1431,6 +1557,7 @@ const MoodDashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
+            key={completedChallenges.length}
           >
             <Typography variant={{ xs: 'h6', sm: 'h5', md: 'h5' }} component="h2" color="#0d1b14" fontWeight="bold" gutterBottom>
               Active Challenges
@@ -1438,41 +1565,99 @@ const MoodDashboard = () => {
 
             <Grid container spacing={{ xs: 2, sm: 3 }}>
               {personalizedChallenges.length > 0 ? (
-                personalizedChallenges.map((challenge, index) => (
-                  <Grid item xs={12} sm={6} md={6} key={index}>
-                    <StyledCard sx={{ p: { xs: 2, sm: 3 }, borderLeft: `4px solid ${challenge.severity === 'high' ? '#f44336' : challenge.severity === 'medium' ? '#ff9800' : '#4caf50'}` }}>
-                      <Typography
-                        variant={isMobile ? "h6" : "h6"}
-                        fontWeight="bold"
-                        color="#0d1b14"
-                        gutterBottom
-                      >
-                        {challenge.title}
-                      </Typography>
-                      <Typography color="#4c9a73" mb={2} fontSize={{ xs: 12, sm: 14 }}>
-                        {challenge.description}
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Chip
-                          label={challenge.type}
-                          size="small"
-                          sx={{ backgroundColor: '#e7f3ed', color: '#0d1b14' }}
-                        />
-                        <Button
-                          variant="contained"
-                          size="small"
-                          sx={{
-                            borderRadius: '8px',
-                            bgcolor: '#4c9a73',
-                            '&:hover': { bgcolor: '#3a9b7a' }
-                          }}
-                        >
-                          Start
-                        </Button>
-                      </Box>
-                    </StyledCard>
-                  </Grid>
-                ))
+                personalizedChallenges
+                  .map((challenge, index) => {
+                    const challengeId = challenge.id ?? `${challenge.title}-${index}`;
+                    if (completedChallenges.includes(challengeId)) return null;
+                    const timer = activeTimers[challengeId];
+                    const isTimerActive = timer && timer.timeRemaining > 0;
+
+                    return (
+                      <Grid item xs={12} sm={6} md={6} key={`${challengeId}-${index}`}>
+                        <StyledCard sx={{
+                          p: { xs: 2, sm: 3 },
+                          borderLeft: `4px solid ${challenge.severity === 'high' ? '#f44336' : challenge.severity === 'medium' ? '#ff9800' : '#4caf50'}`,
+                          transition: 'all 0.3s ease'
+                        }}>
+                          <Typography
+                            variant={isMobile ? "h6" : "h6"}
+                            fontWeight="bold"
+                            color="#0d1b14"
+                            gutterBottom
+                          >
+                            {challenge.title}
+                          </Typography>
+                          <Typography color="#4c9a73" mb={2} fontSize={{ xs: 12, sm: 14 }}>
+                            {challenge.description}
+                          </Typography>
+
+                          {isTimerActive && (
+                            <Box sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              mb: 2,
+                              p: 1,
+                              bgcolor: '#f0f8f5',
+                              borderRadius: 1
+                            }}>
+                              <Box display="flex" alignItems="center">
+                                <SvgIcon fontSize="small" sx={{ mr: 0.5, color: '#4c9a73' }}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z" />
+                                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z" />
+                                  </svg>
+                                </SvgIcon>
+                                <Typography color="#4c9a73" fontWeight="bold">
+                                  Time remaining: {formatTime(timer.timeRemaining)}
+                                </Typography>
+                              </Box>
+                              <Button
+                                size="small"
+                                onClick={() => setActiveTimers(prev => ({ ...prev, [challengeId]: null }))}
+                                sx={{
+                                  color: '#f44336',
+                                  fontWeight: 'bold',
+                                  textTransform: 'none',
+                                  p: 0.5,
+                                  minWidth: 'unset'
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </Box>
+                          )}
+
+                          {isTimerActive ? (
+                            <Typography variant="body2" color="#4c9a73" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+                              Challenge in progress...
+                            </Typography>
+                          ) : (
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Chip
+                                label={challenge.type}
+                                size="small"
+                                sx={{ backgroundColor: '#e7f3ed', color: '#0d1b14' }}
+                              />
+                              <Button
+                                variant="contained"
+                                size="small"
+                                onClick={() => startTimer(challengeId, challenge.duration || 1)}
+                                sx={{
+                                  borderRadius: '8px',
+                                  bgcolor: '#4c9a73',
+                                  '&:hover': { bgcolor: '#3a9b7a' }
+                                }}
+                              >
+                                Start
+                              </Button>
+                            </Box>
+                          )}
+                        </StyledCard>
+                      </Grid>
+                    );
+                  })
+                  .filter(Boolean)
               ) : (
                 defaultChallenges.map((challenge, index) => (
                   <Grid item xs={12} sm={6} md={6} key={index}>
@@ -1484,7 +1669,7 @@ const MoodDashboard = () => {
                         gutterBottom
                       >
                         {challenge.title}
-                      </Typography>
+                        </Typography>
 
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                         <Typography fontSize={{ xs: 11, sm: 14 }} color="#4c9a73">
@@ -1504,8 +1689,15 @@ const MoodDashboard = () => {
                           {challenge.progress}%
                         </Typography>
                       </Box>
-                      <Box mt={2} fontSize={11} color="#4c9a73" sx={{ textAlign: 'justify' }}>
-                        "The mind is everything. What you think you become." - Buddha
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={() => startTimer(`default-${index}`, 1)}
+                          sx={{ borderRadius: '8px', bgcolor: '#4c9a73', '&:hover': { bgcolor: '#3a9b7a' } }}
+                        >
+                          Start
+                        </Button>
                       </Box>
                     </StyledCard>
                   </Grid>
