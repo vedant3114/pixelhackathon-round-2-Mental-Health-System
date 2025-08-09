@@ -53,7 +53,7 @@ const AIChatbotWidget = () => {
         }),
       });
       const data = await response.json();
-      const fullReply = data.choices[0]?.message?.content || "(No response)";
+      const fullReply = data.choices[0]?.message?.content || "(No responses received)";
       simulateTyping(fullReply, newMessages);
     } catch (error) {
       console.error("Error fetching from OpenRouter:", error);
