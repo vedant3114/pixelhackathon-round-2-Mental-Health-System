@@ -40,7 +40,7 @@ import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 
-
+import CrisisSupportPage from './CrisisSupportPage';
 
 import { auth, db } from '../firebase/config';
 import {
@@ -235,7 +235,7 @@ const MoodChart = ({ moodEntries }) => {
             <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
               <feOffset dx="0" dy="1" result="offsetblur" />
-              <feFlood floodColor="#000000" floodOpacity="0.1" />
+              <feFlood floodColor="#000000" floodOpacity={0.1} />
               <feComposite in2="offsetblur" operator="in" />
               <feMerge>
                 <feMergeNode />
@@ -671,9 +671,7 @@ const MoodDashboard = () => {
 
   // Calculate average mood and track mood patterns
   useEffect(() => {
-    if (!filteredMoodEntries || filteredMoodEntries.length < 7) return;
-
-    // Calculate average mood (keep original functionality)
+    // Calculate average mood (always update)
     if (filteredMoodEntries.length > 0) {
       const totalMood = filteredMoodEntries.reduce((sum, entry) => sum + (entry.mood || 0), 0);
       const avg = totalMood / filteredMoodEntries.length;
@@ -711,6 +709,25 @@ const MoodDashboard = () => {
     }
   }, [filteredMoodEntries, phq9Data]);
 
+
+
+  useEffect(() => {
+    console.log('filteredMoodEntries:', filteredMoodEntries);
+    console.log('averageMood being set to:', averageMood);
+
+    if (filteredMoodEntries.length > 0) {
+      const totalMood = filteredMoodEntries.reduce((sum, entry) => {
+        console.log('Entry mood:', entry.mood);
+        return sum + (entry.mood || 0);
+      }, 0);
+      const avg = totalMood / filteredMoodEntries.length;
+      setAverageMood(parseFloat(avg.toFixed(1)));
+    } else {
+      setAverageMood(0);
+    }
+    // ... rest of the effect ...
+  }, [filteredMoodEntries, phq9Data]);
+
   // Effect to load notifications
   useEffect(() => {
     if (!user) return;
@@ -731,94 +748,94 @@ const MoodDashboard = () => {
     getNotifications();
   }, [user]);
 
- // Effect to generate personalized challenges based on PHQ-9 score
-useEffect(() => {
-  if (!phq9Data) return;
+  // Effect to generate personalized challenges based on PHQ-9 score
+  useEffect(() => {
+    if (!phq9Data) return;
 
-  // Challenge logic based on PHQ-9 score
-  let personalized = [];
+    // Challenge logic based on PHQ-9 score
+    let personalized = [];
 
-  if (phq9Data.score >= 15) {
-    personalized = [
-      {
-        title: "Professional Support",
-        description: "Connect with a mental health professional for guidance",
-        type: "professional",
-        severity: "high"
-      },
-      {
-        title: "Daily Check-ins",
-        description: "Set reminders to check in with yourself 3 times a day",
-        type: "behavior",
-        severity: "high"
-      }
-    ];
-  } else if (phq9Data.score >= 10) {
-    personalized = [
-      {
-        title: "Mindfulness Practice",
-        description: "10-minute guided meditation every morning",
-        type: "mindfulness",
-        severity: "medium"
-      },
-      {
-        title: "Social Connection",
-        description: "Reach out to a friend or family member daily",
-        type: "social",
-        severity: "medium"
-      }
-    ];
-  } else if (phq9Data.score >= 5) {
-    personalized = [
-      {
-        title: "Gratitude Journal",
-        description: "Write down 3 things you're grateful for each day",
-        type: "gratitude",
-        severity: "low"
-      },
-      {
-        title: "Physical Activity",
-        description: "20-minute walk or exercise every day",
-        type: "physical",
-        severity: "low"
-      }
-    ];
-  }
-
-  setPersonalizedChallenges(personalized);
-
-  // Save to user's document in Firestore
-  if (personalized.length > 0) {
-    const updateUserDoc = async () => {
-      const userDocRef = doc(db, 'users', user.uid);
-      await updateDoc(userDocRef, {
-        personalizedChallenges: personalized
-      });
-    };
-    
-    updateUserDoc();
-  }
-}, [phq9Data, user]);
-
-// Effect to load personalized challenges from Firestore
-useEffect(() => {
-  if (!user) return;
-
-  const loadPersonalizedChallenges = async () => {
-    try {
-      const userDoc = await doc(db, 'users', user.uid);
-      const userSnap = await getDoc(userDoc);
-
-      if (userSnap.exists() && userSnap.data().personalizedChallenges) {
-        setPersonalizedChallenges(userSnap.data().personalizedChallenges);
-      }
-    } catch (error) {
-      console.error('Error loading personalized challenges:', error);
+    if (phq9Data.score >= 15) {
+      personalized = [
+        {
+          title: "Professional Support",
+          description: "Connect with a mental health professional for guidance",
+          type: "professional",
+          severity: "high"
+        },
+        {
+          title: "Daily Check-ins",
+          description: "Set reminders to check in with yourself 3 times a day",
+          type: "behavior",
+          severity: "high"
+        }
+      ];
+    } else if (phq9Data.score >= 10) {
+      personalized = [
+        {
+          title: "Mindfulness Practice",
+          description: "10-minute guided meditation every morning",
+          type: "mindfulness",
+          severity: "medium"
+        },
+        {
+          title: "Social Connection",
+          description: "Reach out to a friend or family member daily",
+          type: "social",
+          severity: "medium"
+        }
+      ];
+    } else if (phq9Data.score >= 5) {
+      personalized = [
+        {
+          title: "Gratitude Journal",
+          description: "Write down 3 things you're grateful for each day",
+          type: "gratitude",
+          severity: "low"
+        },
+        {
+          title: "Physical Activity",
+          description: "20-minute walk or exercise every day",
+          type: "physical",
+          severity: "low"
+        }
+      ];
     }
-  };
 
-  loadPersonalizedChallenges();
-}, [user]);
+    setPersonalizedChallenges(personalized);
+
+    // Save to user's document in Firestore
+    if (personalized.length > 0) {
+      const updateUserDoc = async () => {
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, {
+          personalizedChallenges: personalized
+        });
+      };
+
+      updateUserDoc();
+    }
+  }, [phq9Data, user]);
+
+  // Effect to load personalized challenges from Firestore
+  useEffect(() => {
+    if (!user) return;
+
+    const loadPersonalizedChallenges = async () => {
+      try {
+        const userDoc = await doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userDoc);
+
+        if (userSnap.exists() && userSnap.data().personalizedChallenges) {
+          setPersonalizedChallenges(userSnap.data().personalizedChallenges);
+        }
+      } catch (error) {
+        console.error('Error loading personalized challenges:', error);
+      }
+    };
+
+    loadPersonalizedChallenges();
+  }, [user]);
 
   // Mobile menu handlers
   const handleMobileMenuOpen = (event) => {
@@ -868,112 +885,155 @@ useEffect(() => {
   };
 
   // PHQ-9 submission handler
-  // PHQ-9 submission handler
-const handlePhq9Submit = async (responses) => {
-  if (!user) return;
+  const handlePhq9Submit = async (responses) => {
+    if (!user) return;
 
-  const totalScore = responses.reduce((sum, score) => sum + score, 0);
+    const totalScore = responses.reduce((sum, score) => sum + score, 0);
 
-  try {
-    // Generate personalized challenges based on score
-    let personalized = [];
-    
-    if (totalScore >= 15) {
-      personalized = [
-        {
-          title: "Professional Support",
-          description: "Connect with a mental health professional for guidance",
-          type: "professional",
-          severity: "high"
-        },
-        {
-          title: "Daily Check-ins",
-          description: "Set reminders to check in with yourself 3 times a day",
-          type: "behavior",
-          severity: "high"
-        }
-      ];
-    } else if (totalScore >= 10) {
-      personalized = [
-        {
-          title: "Mindfulness Practice",
-          description: "10-minute guided meditation every morning",
-          type: "mindfulness",
-          severity: "medium"
-        },
-        {
-          title: "Social Connection",
-          description: "Reach out to a friend or family member daily",
-          type: "social",
-          severity: "medium"
-        }
-      ];
-    } else if (totalScore >= 5) {
-      personalized = [
-        {
-          title: "Gratitude Journal",
-          description: "Write down 3 things you're grateful for each day",
-          type: "gratitude",
-          severity: "low"
-        },
-        {
-          title: "Physical Activity",
-          description: "20-minute walk or exercise every day",
-          type: "physical",
-          severity: "low"
-        }
-      ];
-    }
-
-    // Save PHQ-9 responses to Firestore
-    const phq9ResponseRef = await addDoc(collection(db, 'users', user.uid, 'phq9_responses'), {
-      responses,
-      score: totalScore,
-      timestamp: new Date().toISOString(),
-      moodHistory: filteredMoodEntries
-    });
-
-    // Save personalized challenges to Firestore
-    if (personalized.length > 0) {
-      await updateDoc(doc(db, 'users', user.uid, 'phq9_responses', phq9ResponseRef.id), {
-        personalizedChallenges: personalized
-      });
-    }
-
-    // Update user's profile with PHQ-9 status
-    const userDocRef = doc(db, 'users', user.uid);
-    await updateDoc(userDocRef, {
-      lastPhq9Date: new Date().toISOString(),
-      phq9History: [...(user?.phq9History || []), {
+    try {
+      // Save PHQ-9 responses to Firestore
+      const phq9ResponseRef = await addDoc(collection(db, 'users', user.uid, 'phq9_responses'), {
+        responses,
         score: totalScore,
-        timestamp: new Date().toISOString()
-      }]
-    });
+        timestamp: new Date().toISOString(),
+        moodHistory: filteredMoodEntries
+      });
 
-    // Store PHQ-9 data locally
-    setPhq9Data({
-      score: totalScore,
-      responses,
-      timestamp: new Date().toISOString()
-    });
+      // Save personalized challenges to Firestore
+      let personalized = [];
 
-    // Add mood alert for low scores
-    if (totalScore >= 15) {
+      if (totalScore >= 15) {
+        personalized = [
+          {
+            title: "Professional Support",
+            description: "Connect with a mental health professional for guidance",
+            type: "professional",
+            severity: "high"
+          },
+          {
+            title: "Daily Check-ins",
+            description: "Set reminders to check in with yourself 3 times a day",
+            type: "behavior",
+            severity: "high"
+          }
+        ];
+      } else if (totalScore >= 10) {
+        personalized = [
+          {
+            title: "Mindfulness Practice",
+            description: "10-minute guided meditation every morning",
+            type: "mindfulness",
+            severity: "medium"
+          },
+          {
+            title: "Social Connection",
+            description: "Reach out to a friend or family member daily",
+            type: "social",
+            severity: "medium"
+          }
+        ];
+      } else if (totalScore >= 5) {
+        personalized = [
+          {
+            title: "Gratitude Journal",
+            description: "Write down 3 things you're grateful for each day",
+            type: "gratitude",
+            severity: "low"
+          },
+          {
+            title: "Physical Activity",
+            description: "20-minute walk or exercise every day",
+            type: "physical",
+            severity: "low"
+          }
+        ];
+      }
+
+      if (personalized.length > 0) {
+        await updateDoc(doc(db, 'users', user.uid, 'phq9_responses', phq9ResponseRef.id), {
+          personalizedChallenges: personalized
+        });
+      }
+
+      // Update user's profile with PHQ-9 status
+      const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, {
-        moodAlerts: [...(user?.moodAlerts || []), {
-          date: new Date().toISOString(),
-          days: lowMoodDays,
-          message: `Your PHQ-9 score indicates moderate to severe depression. Consider professional support immediately.`
+        lastPhq9Date: new Date().toISOString(),
+        phq9History: [...(user?.phq9History || []), {
+          score: totalScore,
+          timestamp: new Date().toISOString()
         }]
       });
+
+      // Store PHQ-9 data locally
+      setPhq9Data({
+        score: totalScore,
+        responses,
+        timestamp: new Date().toISOString()
+      });
+
+      // Add mood alert for low scores
+      if (totalScore >= 15) {
+        await updateDoc(userDocRef, {
+          moodAlerts: [...(user?.moodAlerts || []), {
+            date: new Date().toISOString(),
+            days: lowMoodDays,
+            message: `Your PHQ-9 score indicates moderate to severe depression. Consider professional support immediately.`
+          }]
+        });
+      }
+
+    } catch (error) {
+      console.error('Error saving PHQ-9 response:', error);
+    }
+  };
+
+  // Define function click handler for resource cards
+  const handleResourceClick = (resource) => {
+    // Check if this is a crisis support resource
+    if (resource.isCrisisSupport) {
+      navigate('/crisis-support');
+      return;
     }
 
-  } catch (error) {
-    console.error('Error saving PHQ-9 response:', error);
-  }
-};
+    // Check if the resource has a specific path defined
+    if (resource.path) {
+      navigate(resource.path);
+      return;
+    }
 
- 
+    // Check if this is a Spotify resource
+    if (resource.spotifyUrl) {
+      window.open(resource.spotifyUrl, '_blank');
+      return;
+    }
+
+    // Default fallback for resources without specific paths
+    alert(`Opening ${resource.title}...`);
+  };
+
+  // Define resources array with crisis support flag
+  const resources = [
+    {
+      title: 'Crisis Support',
+      description: 'Immediate help for mental health emergencies',
+      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgxwlv6-ilH9JYd-AUwG9LBL78rIugLp_sOBJGsjh6j842H4u1kP5wM4AhKcdv4s-X_-hPkjavecy0kZcFq4w9rD0vDskvweuei6gAi0U0iq9DoEbS7AecziEmkXr4ADSXqAnSRAd_aqCTdkhj34HoW4uAK0DnZRo_TkDq6RxfLSYQrs3WuqeoNr2PrIjCEjkmoTrBKLXc-xaVJTVu4lUMVvyZBzkqzOVptVqN9SsX9tE7Dh-CSpWWHLICJTiYXdPN_pU9bol0ITYp',
+      isCrisisSupport: true
+    },
+    {
+      title: 'Calming Exercises',
+      description: 'Short activities to reduce stress and anxiety',
+      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBxdVPWXMJhcXSJ5q6QC7pB4MRXNCAEYXLTdB-XjkQdMBum8Krz-qtSp-VdYhSJNNjEMv_75BPKpcSzHO68ZTUzvRZv6K3EFIjSG81mF8oECDwNxrGECsrD0IqN4lV3PcRPx7Ob2mPlq2CekVeXUhwSRsvgGQ2kUtF0Wx-qwoReTxoDuZ6l5uycAFsD-vTDlep7AjCQCRY28hX1IbELgUMuT6xAc_id5_DQU0uwScrWlnxKhCxtxdoQli_ObmAGZcAzeD12YjgV62_9',
+      path: '/calming-exercises'
+    },
+    {
+      title: 'My Playlists',
+      description: 'Create personalized calming playlists based on your mood',
+      image: 'https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg',
+      path: '/playlists'
+    }
+  ];
+
   const defaultChallenges = [
     {
       title: '30-Day Mindfulness Challenge',
@@ -985,19 +1045,6 @@ const handlePhq9Submit = async (responses) => {
       title: 'Water Intake Challenge',
       progress: 30,
       daysCompleted: 9,
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBxdVPWXMJhcXSJ5q6QC7pB4MRXNCAEYXLTdB-XjkQdMBum8Krz-qtSp-VdYhSJNNjEMv_75BPKpcSzHO68ZTUzvRZv6K3EFIjSG81mF8oECDwNxrGECsrD0IqN4lV3PcRPx7Ob2mPlq2CekVeXUhwSRsvgGQ2kUtF0Wx-qwoReTxoDuZ6l5uycAFsD-vTDlep7AjCQCRY28hX1IbELgUMuT6xAc_id5_DQU0uwScrWlnxKhCxtxdoQli_ObmAGZcAzeD12YjgV62_9',
-    },
-  ];
-
-  const resources = [
-    {
-      title: 'Crisis Support',
-      description: 'Immediate help for mental health emergencies',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAgxwlv6-ilH9JYd-AUwG9LBL78rIugLp_sOBJGsjh6j842H4u1kP5wM4AhKcdv4s-X_-hPkjavecy0kZcFq4w9rD0vDskvweuei6gAi0U0iq9DoEbS7AecziEmkXr4ADSXqAnSRAd_aqCTdkhj34HoW4uAK0DnZRo_TkDq6RxfLSYQrs3WuqeoNr2PrIjCEjkmoTrBKLXc-xaVJTVu4lUMVvyZBzkqzOVptVqN9SsX9tE7Dh-CSpWWHLICJTiYXdPN_pU9bol0ITYp',
-    },
-    {
-      title: 'Calming Exercises',
-      description: 'Short activities to reduce stress and anxiety',
       image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBxdVPWXMJhcXSJ5q6QC7pB4MRXNCAEYXLTdB-XjkQdMBum8Krz-qtSp-VdYhSJNNjEMv_75BPKpcSzHO68ZTUzvRZv6K3EFIjSG81mF8oECDwNxrGECsrD0IqN4lV3PcRPx7Ob2mPlq2CekVeXUhwSRsvgGQ2kUtF0Wx-qwoReTxoDuZ6l5uycAFsD-vTDlep7AjCQCRY28hX1IbELgUMuT6xAc_id5_DQU0uwScrWlnxKhCxtxdoQli_ObmAGZcAzeD12YjgV62_9',
     },
   ];
@@ -1201,6 +1248,16 @@ const handlePhq9Submit = async (responses) => {
             <Typography sx={{ p: 1, fontWeight: 'bold' }}>
               {user?.email || user?.displayName || 'User'}
             </Typography>
+            {/* Add this MenuItem for My Playlists */}
+            <MenuItem onClick={() => { handleUserMenuClose(); navigate('/playlists'); }}>
+              <SvgIcon fontSize="small" sx={{ mr: 1 }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M4 11a1 1 0 1 1 2 0v1a1 1 0 1 1-2 0v-1zm6-4a1 1 0 1 1 2 0v5a1 1 0 1 1-2 0V7zM7 9a1 1 0 011-1h2a1 1 0 1 1 0 2H8a1 1 0 0 1-1-1z" />
+                  <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-1 2h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41z" />
+                </svg>
+              </SvgIcon>
+              My Playlists
+            </MenuItem>
             <MenuItem onClick={handleUserMenuClose}>Profile</MenuItem>
             <MenuItem onClick={handleUserMenuClose}>Settings</MenuItem>
             <MenuItem onClick={handleLogout}>
@@ -1319,7 +1376,6 @@ const handlePhq9Submit = async (responses) => {
               </Box>
 
               {/* PHQ-9 Status Card */}
-             // PHQ-9 Status Card with action button
               <Box sx={{ mt: 3, px: 2, py: 3, bgcolor: '#e7f3ed', borderRadius: 2 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Box>
@@ -1473,15 +1529,49 @@ const handlePhq9Submit = async (responses) => {
             <Grid container spacing={{ xs: 2, sm: 3 }}>
               {resources.map((resource, index) => (
                 <Grid item xs={12} sm={6} md={6} key={index}>
-                  <StyledCard sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Typography
-                      variant={isMobile ? "h6" : "h6"}
-                      fontWeight="bold"
-                      color="#0d1b14"
-                      gutterBottom
-                    >
-                      {resource.title}
-                    </Typography>
+                  <StyledCard
+                    sx={{
+                      p: { xs: 2, sm: 3 },
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }
+                    }}
+                    onClick={() => handleResourceClick(resource)}
+                  >
+                    <Box display="flex" alignItems="center" mb={1}>
+                      {resource.isCrisisSupport ? (
+                        <SvgIcon fontSize="small" sx={{ mr: 1, color: '#f44336' }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
+                            <path d="M0 0h24v24H0z" fill="none" />
+                            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+                          </svg>
+                        </SvgIcon>
+                      ) : resource.spotifyUrl ? (
+                        <SvgIcon fontSize="small" sx={{ mr: 1, color: '#1DB954' }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
+                            <path d="M0 0h24v24H0z" fill="none" />
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+                          </svg>
+                        </SvgIcon>
+                      ) : (
+                        <SvgIcon fontSize="small" sx={{ mr: 1, color: '#4c9a73' }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
+                            <path d="M0 0h24v24H0z" fill="none" />
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                          </svg>
+                        </SvgIcon>
+                      )}
+                      <Typography
+                        variant={isMobile ? "h6" : "h6"}
+                        fontWeight="bold"
+                        color="#0d1b14"
+                      >
+                        {resource.title}
+                      </Typography>
+                    </Box>
                     <Typography color="#4c9a73" mb={2} fontSize={{ xs: 12, sm: 14 }}>
                       {resource.description}
                     </Typography>
