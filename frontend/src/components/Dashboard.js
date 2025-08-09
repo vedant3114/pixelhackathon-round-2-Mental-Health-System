@@ -2265,89 +2265,244 @@ const MoodDashboard = () => {
         </Box>
 
         {/* Quick Resources */}
-        <Box sx={{ mt: { xs: 4, sm: 6, md: 8 }, mb: { xs: 2, sm: 4, md: 6 } }}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <Typography variant={{ xs: 'h6', sm: 'h5', md: 'h5' }} component="h2" color="#0d1b14" fontWeight="bold" gutterBottom>
-              Quick Resources
-            </Typography>
-
-            <Grid container spacing={{ xs: 2, sm: 3 }}>
-              {resources.map((resource, index) => (
-                <Grid item xs={12} sm={6} md={6} key={index}>
-                  <StyledCard
-                    sx={{
-                      p: { xs: 2, sm: 3 },
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                      }
-                    }}
-                    onClick={() => handleResourceClick(resource)}
-                  >
-                    <Box display="flex" alignItems="center" mb={1}>
-                      {resource.isCrisisSupport ? (
-                        <SvgIcon fontSize="small" sx={{ mr: 1, color: '#f44336' }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
-                            <path d="M0 0h24v24H0z" fill="none" />
-                            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
-                          </svg>
-                        </SvgIcon>
-                      ) : resource.spotifyUrl ? (
-                        <SvgIcon fontSize="small" sx={{ mr: 1, color: '#1DB954' }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
-                            <path d="M0 0h24v24H0z" fill="none" />
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-                          </svg>
-                        </SvgIcon>
-                      ) : (
-                        <SvgIcon fontSize="small" sx={{ mr: 1, color: '#4c9a73' }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
-                            <path d="M0 0h24v24H0z" fill="none" />
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                          </svg>
-                        </SvgIcon>
-                      )}
-                      <Typography
-                        variant={isMobile ? "h6" : "h6"}
-                        fontWeight="bold"
-                        color="#0d1b14"
-                      >
-                        {resource.title}
-                      </Typography>
-                    </Box>
-                    <Typography color="#4c9a73" mb={2} fontSize={{ xs: 12, sm: 14 }}>
-                      {resource.description}
+       <Box sx={{ mt: { xs: 4, sm: 6, md: 8 }, mb: { xs: 2, sm: 4, md: 6 } }}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+                    <Typography variant={{ xs: 'h6', sm: 'h5', md: 'h5' }} component="h2" color="#0d1b14" fontWeight="bold">
+                      Quick Resources
                     </Typography>
-                    <Box
-                      sx={{
-                        height: { xs: 120, sm: 150 },
-                        borderRadius: 1,
-                        overflow: 'hidden',
-                        backgroundImage: `url(${resource.image})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }}
-                    />
-                  </StyledCard>
-                </Grid>
-              ))}
-            </Grid>
-          </motion.div>
-        </Box>
-
-        {/* Notifications Section */}
-       
-        {/* Custom spacing for mobile devices */}
-        <Box sx={{ height: { xs: 80, sm: 0 } }} />
-      </Container>
-    </Root>
-  );
-};
-
-export default MoodDashboard;
+                    <Box display={{ xs: 'none', sm: 'flex' }} gap={1}>
+                      <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: '#42f099' }} />
+                      <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: '#4c9a73' }} />
+                      <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: '#3a9b7a' }} />
+                    </Box>
+                  </Box>
+      
+                  <Grid container spacing={{ xs: 3, sm: 4, md: 4 }}>
+                    {resources.map((resource, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
+                        whileHover={{ y: -5 }}
+                      >
+                        <Grid item xs={12} sm={6} md={6}>
+                          <StyledCard
+                            sx={{
+                              p: { xs: 3, sm: 4, md: 4 },
+                              cursor: 'pointer',
+                              borderRadius: 3,
+                              height: '100%',
+                              position: 'relative',
+                              overflow: 'hidden',
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+                              '&:before': {
+                                content: '""',
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '5px',
+                                background: resource.isCrisisSupport
+                                  ? 'linear-gradient(90deg, #f44336, #ff8a80)'
+                                  : resource.spotifyUrl
+                                    ? 'linear-gradient(90deg, #1DB954, #1ed760)'
+                                    : 'linear-gradient(90deg, #4c9a73, #42f099)',
+                                transform: 'translateX(-100%)',
+                                transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                              },
+                              '&:hover': {
+                                transform: 'translateY(-5px)',
+                                boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
+                                '&:before': {
+                                  transform: 'translateX(0)',
+                                },
+                              },
+                            }}
+                            onClick={() => handleResourceClick(resource)}
+                          >
+                            <Box display="flex" alignItems="center" mb={3}>
+                              {resource.isCrisisSupport ? (
+                                <Box
+                                  sx={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: 'rgba(244, 67, 54, 0.1)',
+                                    mr: 2,
+                                  }}
+                                >
+                                  <SvgIcon sx={{ color: '#f44336' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
+                                      <path d="M0 0h24v24H0z" fill="none" />
+                                      <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+                                    </svg>
+                                  </SvgIcon>
+                                </Box>
+                              ) : resource.spotifyUrl ? (
+                                <Box
+                                  sx={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: 'rgba(29, 185, 84, 0.1)',
+                                    mr: 2,
+                                  }}
+                                >
+                                  <SvgIcon sx={{ color: '#1DB954' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
+                                      <path d="M0 0h24v24H0z" fill="none" />
+                                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+                                    </svg>
+                                  </SvgIcon>
+                                </Box>
+                              ) : (
+                                <Box
+                                  sx={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: 'rgba(76, 154, 115, 0.1)',
+                                    mr: 2,
+                                  }}
+                                >
+                                  <SvgIcon sx={{ color: '#4c9a73' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
+                                      <path d="M0 0h24v24H0z" fill="none" />
+                                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                                    </svg>
+                                  </SvgIcon>
+                                </Box>
+                              )}
+                              <Box>
+                                <Typography
+                                  variant={isMobile ? "h6" : "h6"}
+                                  fontWeight="bold"
+                                  color="#0d1b14"
+                                  sx={{ lineHeight: 1.2 }}
+                                >
+                                  {resource.title}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="#4c9a73"
+                                  sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}
+                                >
+                                  {resource.isCrisisSupport ? 'Emergency' : resource.spotifyUrl ? 'Music' : 'Guidance'}
+                                </Typography>
+                              </Box>
+                            </Box>
+      
+                            <Typography
+                              color="#4c9a73"
+                              mb={3}
+                              fontSize={{ xs: 14, sm: 15, md: 15 }}
+                              sx={{ lineHeight: 1.5 }}
+                            >
+                              {resource.description}
+                            </Typography>
+      
+                            <Box
+                              sx={{
+                                height: { xs: 140, sm: 180, md: 200 },
+                                borderRadius: 2,
+                                overflow: 'hidden',
+                                position: 'relative',
+                                '&:after': {
+                                  content: '""',
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: '100%',
+                                  height: '100%',
+                                  background: 'linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,0.7) 100%)',
+                                  zIndex: 1,
+                                },
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: '100%',
+                                  height: '100%',
+                                  backgroundImage: `url(${resource.image})`,
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center',
+                                  filter: 'brightness(0.85)',
+                                  transition: 'transform 0.5s ease',
+                                  '&:hover': {
+                                    transform: 'scale(1.05)',
+                                  },
+                                }}
+                              />
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  bottom: 0,
+                                  left: 0,
+                                  width: '100%',
+                                  padding: 1.5,
+                                  color: 'white',
+                                  zIndex: 2,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'flex-end',
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    bgcolor: 'rgba(76, 154, 115, 0.8)',
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                      bgcolor: '#4c9a73',
+                                      transform: 'scale(1.1)',
+                                    },
+                                  }}
+                                >
+                                  <SvgIcon sx={{ color: 'white' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                    </svg>
+                                  </SvgIcon>
+                                </Box>
+                              </Box>
+                            </Box>
+                          </StyledCard>
+                        </Grid>
+                      </motion.div>
+                    ))}
+                  </Grid>
+                </motion.div>
+              </Box>
+      
+              {/* Custom spacing for mobile devices */}
+              <Box sx={{ height: { xs: 80, sm: 0 } }} />
+            </Container>
+          </Root>
+        );
+      };
+      
+      export default MoodDashboard;

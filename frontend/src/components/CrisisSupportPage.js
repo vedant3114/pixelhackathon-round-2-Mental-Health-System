@@ -328,7 +328,7 @@ const CrisisSupportPage = () => {
         </Typography>
         <Button 
           variant="outlined" 
-          onClick={() => navigate('/')} 
+          onClick={() => navigate('/dashboard')} 
           sx={{ mt: 3 }}
         >
           Back to Dashboard
@@ -657,7 +657,7 @@ const CrisisSupportPage = () => {
                 Thank you for reaching out for help. These resources are available 24/7.
               </Typography>
               <Button 
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/dashboard')}
                 variant="outlined"
                 sx={{ borderRadius: '8px', mr: 2 }}
               >
